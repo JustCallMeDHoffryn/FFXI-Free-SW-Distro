@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="windows-1252"?>
+<System>
+
+	<Input Path="P:\Ashita\addons\findall\data"/>					<!-- Path to data LUA -->
+	<Input User="Dhoffryn"/>										<!-- User -->
+
+</System>
