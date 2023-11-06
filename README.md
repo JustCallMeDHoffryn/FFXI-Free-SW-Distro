@@ -4,8 +4,4 @@ This is a distribution hub for the software I have written to assist when playin
 
 All software is FREE, NEVER let anyone charge you for it, and please never charge anyone else for it.
 
-All Software is "as is" and while I do my best to prouduce bug free software, this is the real world so "caveat emptor", it is probably worth exactly what you paid for it.
-
-AI-1P .. All In One Place, visual information tool
-
-AAG .. At A Glance, visual inventory tool
+All Software is "as is" and while I do my best to produce bug free software, this is the real world so "caveat emptor", it is probably worth exactly what you paid for it.
