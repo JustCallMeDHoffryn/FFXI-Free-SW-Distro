@@ -1,5 +1,5 @@
 
-ZoneFish = T{
+local ZoneFishTable = T{
     [1]		=	T{	4315,
 					4319,
 					4354,
@@ -1024,3 +1024,5 @@ ZoneFish = T{
 					9216,
 				},
 	}
+
+return ZoneFishTable
