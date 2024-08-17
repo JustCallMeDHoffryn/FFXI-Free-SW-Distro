@@ -1,12 +1,15 @@
 --	---------------------------------------------------------------------------
 
 require('common')
-require('data/FishByZone')		--	Table of fish per zone
-require('data/AllFish')			--	Table of all fish
 
-local chat		= require('chat')
-local imgui		= require('imgui')
-local settings 	= require('settings')
+local chat			= require('chat')
+local imgui			= require('imgui')
+local settings 		= require('settings')
+
+local ZoneFish  	= require('data/FishByZone')		--	Table of fish per zone
+local AllFishPlus	= require('data/AllFish')			--	Table of all fish
+local AllRods		= require('data/Rods')				--	Table of fishing rods by item
+local AllBait		= require('data/Bait')				--	Table of bait/lure by item
 
 --	---------------------------------------------------------------------------
 --	Almanac UI Variables
@@ -49,6 +52,10 @@ local ui = {
 
     settings = settings.load(defaults),
 };
+
+--	---------------------------------------------------------------------------
+--	Called when we want to force a save of the settings
+--	---------------------------------------------------------------------------
 
 function ui.SaveState(state)
 	
@@ -140,6 +147,7 @@ function ui.load()
 		ui.AllFish:append(T{
 			index   = key,
 			name    = FishOrObject[1],
+			object	= FishOrObject[2],
 		});
 		
 	end	
@@ -193,9 +201,10 @@ function ui.packet_in(Packet)
 		ui.Tab_ThisZone.selected[1] = -1
 		ui.Tab_AllFish.selected[1]  = -1
 
-        ui.zone = T{};
+        ui.FishThisZone = T{}
 
-        return;
+        return
+		
     end
 
 end
@@ -214,10 +223,103 @@ function ui.render_RodAndBait(index)
 
 	else
 
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('Mode = Zone'));
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('Selected = %d'):fmt(index));	
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('%d'):fmt(ui.FishThisZone[index]));
+		local ItemID = 0
+		local Object = 0
+		
+		ItemID = ui.FishThisZone[index]
+		
+		if 0 ~= ItemID then
+			Object = AllFishPlus[ItemID][2]
+			end
+			
+		imgui.TextColored({ 1.0, 1.0, 1.0, 1.0 }, ('Item'))
+		imgui.SameLine()
+		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(%d)'):fmt(ItemID))
+		imgui.SameLine()
 
+		if 1 == Object then
+			imgui.TextColored({ 0.1, 0.1, 0.1, 1.0 }, ('Object'));
+		else
+			imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Fish'));
+			imgui.SameLine()
+			imgui.TextColored({ 0.1, 0.1, 0.1, 1.0 }, ('|'));
+			imgui.SameLine()
+			
+			if 1 == AllFishPlus[ItemID][7] then
+				imgui.TextColored({ 0.6, 0.0, 0.0, 1.0 }, ('Legendary'));
+			else
+				if 1 == AllFishPlus[ItemID][6] then
+					imgui.TextColored({ 1.0, 0.6, 0.0, 1.0 }, ('Large'));
+				else
+					imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Small'));
+				end
+			end
+		end
+
+		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
+		imgui.Separator();
+		imgui.PopStyleColor()
+		
+		for key, BaitOrLure in pairs(AllBait) do
+
+			if key == ItemID then
+			
+				for rod, BaitObject in pairs(BaitOrLure) do
+					imgui.TextColored({ 1.0, 1.0, 0.4, 1.0 }, ('%s'):fmt(BaitObject[1]))
+					imgui.SameLine(240)
+					imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
+					imgui.SameLine()
+					
+					if 0 == BaitObject[2] then
+						imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, (' NA'))
+					else
+						if (BaitObject[2] % 10) ~= 0 then
+							imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%.1f'):fmt(BaitObject[2] / 10.0))
+						else					
+							imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%.0f'):fmt(BaitObject[2] / 10.0))
+						end
+						
+						imgui.SameLine()
+						imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%%'))
+					end
+				end
+				
+			end
+			
+		end	
+
+		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
+		imgui.Separator();
+		imgui.PopStyleColor()
+		
+		for key, FishOrObject in pairs(AllRods) do
+
+			if key == ItemID then
+			
+				for rod, RodObject in pairs(FishOrObject) do
+					imgui.TextColored({ 1.0, 1.0, 0.4, 1.0 }, ('%s'):fmt(RodObject[1]));
+					imgui.SameLine(240)
+					imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
+					imgui.SameLine()
+					
+					if 0 == RodObject[3] then
+						imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('None'))
+					else
+						imgui.TextColored({ 0.4, 0.1, 0.1, 1.0 }, ('%.0f'):fmt(RodObject[3] / 10.0))
+						imgui.SameLine()
+						imgui.TextColored({ 0.4, 0.1, 0.1, 1.0 }, ('%%'))
+					end
+					
+				end
+				
+			end
+			
+		end	
+
+		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
+		imgui.Separator();
+		imgui.PopStyleColor()
+		
 	end
 	
 end
@@ -339,39 +441,16 @@ function ui.renderTitleInfo()
     imgui.SameLine();
     imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(%03d)'):fmt(playerData.zoneID));
 	
-	--FishThisZone
-	
-	--[[
-    local playerData = backend.get_player_entity_data()
-    if playerData == nil then
-        return
-    end
+	local count = 0
+	for _ in pairs(ui.FishThisZone) do count = count + 1 end
 
-    local playerJobString = '(99NIN/49WAR) '
+    imgui.SameLine()
+    imgui.TextColored({ 1.0, 0.5, 0.0, 1.0 }, ('|'))
+    imgui.SameLine()
+    imgui.TextColored({ 0.0, 0.65, 1.0, 1.0 }, ('%d'):fmt(count))
+    imgui.SameLine()
+    imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, 'Items in this zone')
 
-    --  TODO: implement for Windower/Ashitav3
-    if playerData.mJob then
-        playerJobString = string.format("(%02d%s/%02d%s) ", playerData.mJobLevel, playerData.mJob, playerData.sJobLevel, playerData.sJob)
-    end
-
-    local zoneInfo = 'Zone: 000 (Zone Name)'
-
-    --  TODO: implement for Windower/Ashitav3
-    if playerData.zoneID then
-        zoneInfo = string.format("Zone: %03d, (%s)", playerData.zoneID, playerData.zoneName)
-    end	
-	]]--
-    --imgui.TextColored({ 1.0, 1.0, 0.0, 1.0 }, 'Total Spells:');
-    --imgui.SameLine();
-    --imgui.TextColored({ 1.0, 0.5, 0.2, 1.0 }, ('%d'):fmt(ui.counts.total));
-    --imgui.SameLine();
-    --imgui.TextColored({ 1.0, 1.0, 0.0, 1.0 }, '| Known:');
-    --imgui.SameLine();
-    --imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, ('%d'):fmt(ui.counts.known));
-    --imgui.SameLine();
-    --imgui.TextColored({ 1.0, 1.0, 0.0, 1.0 }, '| Missing:');
-    --imgui.SameLine();
-    --imgui.TextColored({ 1.0, 0.2, 0.2, 1.0 }, ('%d'):fmt(ui.counts.missing));
 end
 
 --	---------------------------------------------------------------------------
@@ -382,60 +461,60 @@ function ui.render_Tab_ThisZone()
 
 	--	NOTE .. Indents reflect the window object level in IMGUI
 
-	imgui.BeginGroup();
+	imgui.BeginGroup()
 	
-		imgui.PushStyleColor(ImGuiCol_ChildBg, { 0.42, 0.42, 0.5, 1.0 });
+		imgui.PushStyleColor(ImGuiCol_ChildBg, { 0.42, 0.42, 0.5, 1.0 })
 	
-        imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Fish Available Here');
-        imgui.BeginChild('leftpane', { 330, 294, }, true);
+        imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Fish Available Here')
+        imgui.BeginChild('leftpane', { 330, 294, }, true)
 
+			local	pushed = 0
+			
 			for i, fishId in pairs(ui.FishThisZone) do
 
 				--	The local table gives us the ID that is used to get the data from the AllFish table
 				
+				if ui.Tab_ThisZone.selected[1] == i then
+                    imgui.PushStyleColor(ImGuiCol_Text, { 1.00, 0.5, 0.0, 1.0 })
+					pushed = 1
+				end
+
 				if (imgui.Selectable(('%s'):fmt(AllFishPlus[fishId][1]), ui.Tab_ThisZone.selected[1] == i)) then
                     ui.Tab_ThisZone.selected[1] = i;
                 end
 
+				if pushed == 1 then
+					imgui.PopStyleColor()
+					pushed = 0
+				end
+
 			end
-			
-			--for (ui.Fish:append(fishTable[i]);
-			
-			--[[ui.spells:each(function (v, k)
-                if (v.known) then
-                    imgui.PushStyleColor(ImGuiCol_Text, { 0.0, 1.0, 0.0, 1.0 });
-                else
-                    imgui.PushStyleColor(ImGuiCol_Text, { 1.0, 0.0, 0.0, 1.0 });
-                end
-                if (imgui.Selectable(('[%02d] %s##%d'):fmt(v.level, v.name, v.index), ui.tab_fish.selected[1] == index)) then
-                    ui.tab_fish.selected[1] = index;
-                end
-                imgui.PopStyleColor();
-
-                index = index + 1;
-            end);]]--
         
-		imgui.EndChild();
+		imgui.EndChild()
 
-        imgui.PopStyleColor();
+        imgui.PopStyleColor()
 
-    imgui.EndGroup();
-    imgui.SameLine();
+    imgui.EndGroup()
+    imgui.SameLine()
 
 	--	-----------------------------------------------------------------------
     --	Right Side (Bait & Rod data)
 	--	-----------------------------------------------------------------------
 	
-    imgui.BeginGroup();
-        
-		imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Rod & Bait Information');
-        
-		imgui.BeginChild('rightpane', { 0, 294, }, true);
-            ui.render_RodAndBait(ui.Tab_ThisZone.selected[1]);
-        
-		imgui.EndChild();
+    imgui.BeginGroup()
     
-	imgui.EndGroup();
+   		imgui.PushStyleColor(ImGuiCol_ChildBg, { 0.42, 0.42, 0.5, 1.0 })
+
+		imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Rod & Bait Information')
+        
+		imgui.BeginChild('rightpane', { 0, 294, }, true)
+            ui.render_RodAndBait(ui.Tab_ThisZone.selected[1])
+        
+		imgui.EndChild()
+
+        imgui.PopStyleColor()
+
+	imgui.EndGroup()
 
 	--	-----------------------------------------------------------------------
 end
