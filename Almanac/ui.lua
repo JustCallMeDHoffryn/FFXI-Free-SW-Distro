@@ -1,4 +1,24 @@
 --	---------------------------------------------------------------------------
+--	This file contains most of the logic for Almanac, it makes use of IMGUI to
+--	render the various panels that display the fish information
+--	---------------------------------------------------------------------------
+--
+--	This code is FREE to use as you want, just please don't claim credit 
+--	for my work (such as it is)
+--
+--	Many of the ideas used in this Addon were learnt from the work of 
+--	the following coders ...
+--
+--		atom0s			..	blumon
+--		zach2good		..	Captain
+--		atom0s & Thorny	..	autojoin
+--		Sippius			..	Chains
+--	
+--		Team HXUI (Tirem, Shuu, colorglut, RheaCloud
+--
+--	A BIG thank you to the above for paving the way
+--
+--	---------------------------------------------------------------------------
 
 require('common')
 
@@ -16,21 +36,19 @@ local AllBait		= require('data/Bait')				--	Table of bait/lure by item
 --	---------------------------------------------------------------------------
 
 local defaults = T{
-    x = 200,
-    y = 200,
+    x = 100,
+    y = 500,
     show = true,
 }
 
 local ui = {
 	
 	FishThisZone	= T{},	--	Fish table (in the current zone)
+	ZonesThisFish	= T{},	--	Zone table (for the current fish)
 	AllFish			= T{},	--	All Fish table
 	LocalRods		= T{},	--	Local rod table
 	LocalBait		= T{},	--	Local bait table
-	
-    data			= T{},  -- Raw data loaded from /data/spells.json..
-    spells			= T{},  -- List of spells with proper data from resources..
-    zone			= T{},  -- List of spells available in the current zone..
+	ZoneNames		= T{},	--	Zones as text
 
     -- Main Window
 
@@ -41,7 +59,7 @@ local ui = {
     Tab_ThisZone = {
 	
 		active   = 0,
-        selected = { -1, },
+        selected = -1,
     },
 
     -- "All Fish" Tab
@@ -49,11 +67,11 @@ local ui = {
     Tab_AllFish = {
 	
 		active   = 0,
-        selected = { -1, },
+        selected = -1,
     },
 
     settings = settings.load(defaults),
-};
+}
 
 --	---------------------------------------------------------------------------
 --	Called when we want to force a save of the settings
@@ -62,9 +80,6 @@ local ui = {
 function ui.SaveState(state)
 	
 	ui.settings.show = state
-
-	print(chat.header(addon.name):append(chat.message('New State: (%d, %d) %s'):fmt(ui.settings.x, ui.settings.y, tostring(ui.settings.show))))
-
 	settings.save()
 
 end
@@ -82,7 +97,7 @@ function ui.getZoneFish(ZoneID)
 		for key, fishTable in pairs(ZoneFish) do
 			if key == ZoneID then
 				for i, fishId in pairs(fishTable) do
-					ui.FishThisZone:append(fishTable[i]);
+					ui.FishThisZone:append(fishTable[i])
 				end
 			end
 		end
@@ -91,7 +106,7 @@ function ui.getZoneFish(ZoneID)
 
 		ui.FishThisZone:sort(function (a, b)
 			return (AllFishPlus[a][1] < AllFishPlus[b][1])
-		end);
+		end)
 		
 	end
 	
@@ -109,10 +124,8 @@ local function UpdateSettings(s)
 	--	Update the settings table..
     
 	if (s ~= nil) then
-        ui.settings = s;
+        ui.settings = s
     end
-
-	print(chat.header(addon.name):append(chat.message('Update: (%d, %d) %s'):fmt(ui.settings.x, ui.settings.y, tostring(ui.settings.show))))
 
     --	Save the current settings..
     
@@ -124,7 +137,7 @@ end
 --	Registers a callback for the settings to monitor for character switches.
 --	---------------------------------------------------------------------------
 
-settings.register('settings', 'settings_update', UpdateSettings);
+settings.register('settings', 'settings_update', UpdateSettings)
 
 --	---------------------------------------------------------------------------
 --	Loads the ui
@@ -132,13 +145,11 @@ settings.register('settings', 'settings_update', UpdateSettings);
 
 function ui.load()
 
-	print(chat.header(addon.name):append(chat.message('Show: (%d, %d) %s'):fmt(ui.settings.x, ui.settings.y, tostring(ui.settings.show))))
-	
 	ui.is_open[1] = ui.settings.show
 	
 	--	Load the fish list for the active zone (may be empty)
 	
-    ui.getZoneFish(AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0));
+    ui.getZoneFish(AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0))
 
 	--	Build the local "All Fish" table
 	
@@ -150,7 +161,7 @@ function ui.load()
 			index   = key,
 			name    = FishOrObject[1],
 			object	= FishOrObject[2],
-		});
+		})
 		
 	end	
 
@@ -160,6 +171,19 @@ function ui.load()
 		return (a.name < b.name)
 		end)
 
+	--	Build a table of zone names for speed
+
+	for i=1, 300 do
+	
+		ui.ZoneNames:append(T{
+			ZoneID  = i,
+			name    = AshitaCore:GetResourceManager():GetString('zones.names', i),
+		})
+
+	end
+
+	print(chat.header(addon.name):append(chat.message('Ready to go fishing .. use /faf (Find A Fish) to toggle the interface ...')))
+	
 end
 
 --	---------------------------------------------------------------------------
@@ -173,8 +197,8 @@ function ui.packet_in(Packet)
     
 	if (Packet.id == 0x000A) then
 
-		ui.Tab_ThisZone.selected[1] = -1
-		ui.Tab_AllFish.selected[1]  = -1
+		ui.Tab_ThisZone.selected = -1
+		ui.Tab_AllFish.selected  = -1
 
         --	We are not interested in the Mog House
 		
@@ -182,15 +206,15 @@ function ui.packet_in(Packet)
 
         --	Extract the new Zone ID
 		
-        local zone = struct.unpack('H', Packet.data_modified, 0x30 + 1);
+        local zone = struct.unpack('H', Packet.data_modified, 0x30 + 1)
         
 		if (zone == 0) then
-            zone = struct.unpack('H', Packet.data_modified, 0x42 + 1);
+            zone = struct.unpack('H', Packet.data_modified, 0x42 + 1)
         end
 
         --	Refresh the "local" fish table
 		
-		ui.getZoneFish(zone);
+		ui.getZoneFish(zone)
 
         return
 		
@@ -200,8 +224,8 @@ function ui.packet_in(Packet)
 
     if (Packet.id == 0x000B) then
 
-		ui.Tab_ThisZone.selected[1] = -1
-		ui.Tab_AllFish.selected[1]  = -1
+		ui.Tab_ThisZone.selected = -1
+		ui.Tab_AllFish.selected  = -1
 
         ui.FishThisZone = T{}
 
@@ -221,7 +245,7 @@ function ui.render_RodAndBait(index)
 
     if (index == -1) then
 
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, '<- Select a fish for details');
+		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, '<- Select a fish for details')
 
 	else
 
@@ -240,26 +264,26 @@ function ui.render_RodAndBait(index)
 		imgui.SameLine()
 
 		if 1 == Object then
-			imgui.TextColored({ 0.1, 0.1, 0.1, 1.0 }, ('Object'));
+			imgui.TextColored({ 0.1, 0.1, 0.1, 1.0 }, ('Object'))
 		else
-			imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Fish'));
+			imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Fish'))
 			imgui.SameLine()
-			imgui.TextColored({ 0.1, 0.1, 0.1, 1.0 }, ('|'));
+			imgui.TextColored({ 0.1, 0.1, 0.1, 1.0 }, ('|'))
 			imgui.SameLine()
 			
 			if 1 == AllFishPlus[ItemID][7] then
-				imgui.TextColored({ 0.6, 0.0, 0.0, 1.0 }, ('Legendary'));
+				imgui.TextColored({ 0.6, 0.0, 0.0, 1.0 }, ('Legendary'))
 			else
 				if 1 == AllFishPlus[ItemID][6] then
-					imgui.TextColored({ 1.0, 0.6, 0.0, 1.0 }, ('Large'));
+					imgui.TextColored({ 1.0, 0.6, 0.0, 1.0 }, ('Large'))
 				else
-					imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Small'));
+					imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Small'))
 				end
 			end
 		end
 
 		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
-		imgui.Separator();
+		imgui.Separator()
 		imgui.PopStyleColor()
 		
 		--	Build a local bait table so that we can sort it based on catch luck
@@ -307,7 +331,7 @@ function ui.render_RodAndBait(index)
 		end
 		
 		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
-		imgui.Separator();
+		imgui.Separator()
 		imgui.PopStyleColor()
 		
 		--	Build a local rod table so that we can sort it based on break percentage
@@ -334,9 +358,9 @@ function ui.render_RodAndBait(index)
 		for rod, RodObject in pairs(ui.LocalRods) do
 
 			if 0 == RodObject.snap then
-				imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%s'):fmt(RodObject.name));
+				imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%s'):fmt(RodObject.name))
 			else
-				imgui.TextColored({ 0.5, 0.1, 0.1, 1.0 }, ('%s'):fmt(RodObject.name));
+				imgui.TextColored({ 0.5, 0.1, 0.1, 1.0 }, ('%s'):fmt(RodObject.name))
 			end
 			
 			imgui.SameLine(260)
@@ -354,7 +378,7 @@ function ui.render_RodAndBait(index)
 		end
 		
 		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
-		imgui.Separator();
+		imgui.Separator()
 		imgui.PopStyleColor()
 		
 	end
@@ -371,13 +395,45 @@ function ui.render_FishGlobal(index)
 
     if (index == -1) then
 
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, '<- Select a fish for details');
+		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, '<- Select a fish for details')
 
 	else
 
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('Mode = Global'));
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('Selected = %d'):fmt(index));
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('%s (%d)'):fmt(ui.AllFish[index].name, ui.AllFish[index].index));
+		ui.ZonesThisFish = T{}		--	Start with an empty table
+		
+		if ZoneID ~= 0 and #ZoneFish ~= 0 then
+		
+			for key, fishTable in pairs(ZoneFish) do
+				for i, fishId in pairs(fishTable) do
+					if fishId == ui.AllFish[index].index then
+					
+						ui.ZonesThisFish:append(T{	Zone	= key,
+													Name	= ui.ZoneNames[key].name	}	)
+					
+					
+					end
+				end		
+			end
+
+			-- Sort the "Fish Zone" list
+
+			ui.ZonesThisFish:sort(function (a, b)
+				return (a.Name < b.Name)
+			end)
+			
+		end
+		
+		for i, Fish in pairs(ui.ZonesThisFish) do
+
+			imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%s'):fmt(ui.ZonesThisFish[i].Name))
+			
+			imgui.SameLine(260)
+			imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
+			imgui.SameLine()
+			
+			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(%d)'):fmt(ui.ZonesThisFish[i].Zone))
+			
+		end
 
     end
 
@@ -414,11 +470,11 @@ function ui.renderTitleInfo()
 
     if playerData == nil then return end
 
-    imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Zone:');
-    imgui.SameLine();
-    imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(playerData.zoneName));
-    imgui.SameLine();
-    imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(%03d)'):fmt(playerData.zoneID));
+    imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Zone:')
+    imgui.SameLine()
+    imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(playerData.zoneName))
+    imgui.SameLine()
+    imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(%03d)'):fmt(playerData.zoneID))
 	
 	local count = 0
 	for _ in pairs(ui.FishThisZone) do count = count + 1 end
@@ -453,13 +509,13 @@ function ui.render_Tab_ThisZone()
 
 				--	The local table gives us the ID that is used to get the data from the AllFish table
 				
-				if ui.Tab_ThisZone.selected[1] == i then
+				if ui.Tab_ThisZone.selected == i then
                     imgui.PushStyleColor(ImGuiCol_Text, { 1.00, 0.5, 0.0, 1.0 })
 					pushed = 1
 				end
 
-				if (imgui.Selectable(('%s'):fmt(AllFishPlus[fishId][1]), ui.Tab_ThisZone.selected[1] == i)) then
-                    ui.Tab_ThisZone.selected[1] = i;
+				if (imgui.Selectable(('%s'):fmt(AllFishPlus[fishId][1]), ui.Tab_ThisZone.selected == i)) then
+                    ui.Tab_ThisZone.selected = i
                 end
 
 				if pushed == 1 then
@@ -487,7 +543,7 @@ function ui.render_Tab_ThisZone()
 		imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Rod & Bait Information')
         
 		imgui.BeginChild('rightpane', { 0, 294, }, true)
-            ui.render_RodAndBait(ui.Tab_ThisZone.selected[1])
+            ui.render_RodAndBait(ui.Tab_ThisZone.selected)
         
 		imgui.EndChild()
 
@@ -508,45 +564,45 @@ function ui.render_Tab_AllFish()
 
     imgui.BeginGroup()
 
-		imgui.PushStyleColor(ImGuiCol_ChildBg, { 0.42, 0.42, 0.5, 1.0 });
+		imgui.PushStyleColor(ImGuiCol_ChildBg, { 0.42, 0.42, 0.5, 1.0 })
 	
-        imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'All Fish');
-        imgui.BeginChild('leftpane', { 220, 294, }, true);
+        imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'All Fish')
+        imgui.BeginChild('leftpane', { 220, 294, }, true)
        
-			local index = 1;		
+			local index = 1		
 			
 			for key, FishOrObject in pairs(ui.AllFish) do
 
-				if (imgui.Selectable(('%s'):fmt(ui.AllFish[index].name), ui.Tab_AllFish.selected[1] == index)) then
-                    ui.Tab_AllFish.selected[1] = index;
+				if (imgui.Selectable(('%s'):fmt(ui.AllFish[index].name), ui.Tab_AllFish.selected == index)) then
+                    ui.Tab_AllFish.selected = index
                 end
 
 				index = index + 1
 
 			end	
 	
-		imgui.EndChild();
-        imgui.SameLine();
+		imgui.EndChild()
+        imgui.SameLine()
 
-        imgui.PopStyleColor();
+        imgui.PopStyleColor()
 
-    imgui.EndGroup();
-    imgui.SameLine();
+    imgui.EndGroup()
+    imgui.SameLine()
 
 	--	-----------------------------------------------------------------------
     --	Right Side (Zone list for selecte fish)
 	--	-----------------------------------------------------------------------
 	
-    imgui.BeginGroup();
+    imgui.BeginGroup()
         
-		imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Global Fish Information');
+		imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Global Fish Information')
 		
-        imgui.BeginChild('rightpane', { 0, 294, }, true);
-            ui.render_FishGlobal(ui.Tab_AllFish.selected[1]);
+        imgui.BeginChild('rightpane', { 0, 294, }, true)
+            ui.render_FishGlobal(ui.Tab_AllFish.selected)
         
-		imgui.EndChild();
+		imgui.EndChild()
     
-	imgui.EndGroup();
+	imgui.EndGroup()
 
 	--	-----------------------------------------------------------------------
 end
@@ -563,18 +619,18 @@ function ui.render()
 
     --	Render (if we get this far)
 
-    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.25, 0.50, .75});
-	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7});
-	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9});
-	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4});
-    imgui.PushStyleColor(ImGuiCol_Header, 			{0, 0.06, .16,  .7});
-    imgui.PushStyleColor(ImGuiCol_HeaderHovered, 	{0, 0.06, .16,  .9});
-    imgui.PushStyleColor(ImGuiCol_HeaderActive, 	{0, 0.06, .16,   1});
-    imgui.PushStyleColor(ImGuiCol_FrameBg, 			{0, 0.06, .16,   1});
-    imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1});
-    imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1});
+    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.25, 0.50, .75})
+	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
+	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
+	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
+    imgui.PushStyleColor(ImGuiCol_Header, 			{0, 0.06, .16,  .7})
+    imgui.PushStyleColor(ImGuiCol_HeaderHovered, 	{0, 0.06, .16,  .9})
+    imgui.PushStyleColor(ImGuiCol_HeaderActive, 	{0, 0.06, .16,   1})
+    imgui.PushStyleColor(ImGuiCol_FrameBg, 			{0, 0.06, .16,   1})
+    imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1})
+    imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1})
 
-    imgui.PushStyleColor(ImGuiCol_Text, 			{0, 0.90, 0.90, 0.90});
+    imgui.PushStyleColor(ImGuiCol_Text, 			{0, 0.90, 0.90, 0.90})
 		
 	imgui.SetNextWindowSize({ 594, 407, })
     imgui.SetNextWindowSizeConstraints({ 594 , 407, }, { FLT_MAX, FLT_MAX, })
@@ -583,14 +639,14 @@ function ui.render()
         
 		imgui.PopStyleColor()
 		
-		ui.renderTitleInfo();
+		ui.renderTitleInfo()
         
 		if (imgui.BeginTabBar('##almanac_tabbar', ImGuiTabBarFlags_NoCloseWithMiddleMouseButton)) then
             
 			--	We have 2 modes, left tab selected = Fish in this zone
 			
 			if (imgui.BeginTabItem('Fish in this zone', nil)) then
-                ui.render_Tab_ThisZone();
+                ui.render_Tab_ThisZone()
                 imgui.EndTabItem()
             end
 		
@@ -598,15 +654,13 @@ function ui.render()
 			
 			if ((imgui.IsItemClicked()) and (0 == ui.Tab_ThisZone.active)) then 
 
-				-- print(chat.header(addon.name):append(chat.message('Left Tab: Clicked (2)')))
-
 				if ui.Tab_AllFish.active then
 
 					ui.Tab_ThisZone.active = 1
 					ui.Tab_AllFish.active  = 0
 
-					ui.Tab_ThisZone.selected[1] = -1
-					ui.Tab_AllFish.selected[1]  = -1
+					ui.Tab_ThisZone.selected = -1
+					ui.Tab_AllFish.selected  = -1
 
 				end
 				
@@ -615,23 +669,21 @@ function ui.render()
 			--	Right tab selected = All Fish
 			
             if (imgui.BeginTabItem('Fish locations (by zone)', nil)) then
-                ui.render_Tab_AllFish();
-                imgui.EndTabItem();
+                ui.render_Tab_AllFish()
+                imgui.EndTabItem()
             end
 
 			--	We swap modes if there is a click in the tab that is NOT selected
 
 			if ((imgui.IsItemClicked()) and (0 == ui.Tab_AllFish.active)) then 
 
-				-- print(chat.header(addon.name):append(chat.message('Right Tab: Clicked (2)')))
-
 				if ui.Tab_ThisZone.active then
 				
 					ui.Tab_ThisZone.active = 0
 					ui.Tab_AllFish.active  = 1
 					
-					ui.Tab_ThisZone.selected[1] = -1
-					ui.Tab_AllFish.selected[1]  = -1
+					ui.Tab_ThisZone.selected = -1
+					ui.Tab_AllFish.selected  = -1
 				
 				end
 
