@@ -25,10 +25,12 @@ local ui = {
 	
 	FishThisZone	= T{},	--	Fish table (in the current zone)
 	AllFish			= T{},	--	All Fish table
+	LocalRods		= T{},	--	Local rod table
+	LocalBait		= T{},	--	Local bait table
 	
-    data			= T{},     -- Raw data loaded from /data/spells.json..
-    spells			= T{},   -- List of spells with proper data from resources..
-    zone			= T{},     -- List of spells available in the current zone..
+    data			= T{},  -- Raw data loaded from /data/spells.json..
+    spells			= T{},  -- List of spells with proper data from resources..
+    zone			= T{},  -- List of spells available in the current zone..
 
     -- Main Window
 
@@ -260,62 +262,97 @@ function ui.render_RodAndBait(index)
 		imgui.Separator();
 		imgui.PopStyleColor()
 		
+		--	Build a local bait table so that we can sort it based on catch luck
+		
+		ui.LocalBait = T{}
+		
 		for key, BaitOrLure in pairs(AllBait) do
 
 			if key == ItemID then
+
+				for bait, BaitObject in pairs(BaitOrLure) do
+
+					ui.LocalBait:append(T{	index	= bait,
+											name	= BaitObject[1],
+											luck	= BaitObject[2],	}	)
+
+				end
+			end
+		end
+		
+		ui.LocalBait:sort(function (a, b)
+			return ((a.luck > b.luck) or ((a.luck == b.luck) and (a.name < b.name)))
+			end)			
+		
+		for bait, BaitObject in pairs(ui.LocalBait) do
+		
+			imgui.TextColored({ 1.0, 1.0, 0.4, 1.0 }, ('%s'):fmt(BaitObject.name))
+			imgui.SameLine(260)
+			imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
+			imgui.SameLine()
 			
-				for rod, BaitObject in pairs(BaitOrLure) do
-					imgui.TextColored({ 1.0, 1.0, 0.4, 1.0 }, ('%s'):fmt(BaitObject[1]))
-					imgui.SameLine(240)
-					imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
-					imgui.SameLine()
-					
-					if 0 == BaitObject[2] then
-						imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, (' NA'))
-					else
-						if (BaitObject[2] % 10) ~= 0 then
-							imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%.1f'):fmt(BaitObject[2] / 10.0))
-						else					
-							imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%.0f'):fmt(BaitObject[2] / 10.0))
-						end
-						
-						imgui.SameLine()
-						imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%%'))
-					end
+			if 0 == BaitObject.luck then
+				imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, (' NA'))
+			else
+				if (BaitObject.luck % 10) ~= 0 then
+					imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%.1f'):fmt(BaitObject.luck / 10.0))
+				else					
+					imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%.0f'):fmt(BaitObject.luck / 10.0))
 				end
 				
+				imgui.SameLine()
+				imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%%'))
 			end
-			
-		end	
-
+		
+		end
+		
 		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
 		imgui.Separator();
 		imgui.PopStyleColor()
+		
+		--	Build a local rod table so that we can sort it based on break percentage
+		
+		ui.LocalRods = T{}
 		
 		for key, FishOrObject in pairs(AllRods) do
 
 			if key == ItemID then
 			
 				for rod, RodObject in pairs(FishOrObject) do
-					imgui.TextColored({ 1.0, 1.0, 0.4, 1.0 }, ('%s'):fmt(RodObject[1]));
-					imgui.SameLine(240)
-					imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
-					imgui.SameLine()
-					
-					if 0 == RodObject[3] then
-						imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('None'))
-					else
-						imgui.TextColored({ 0.4, 0.1, 0.1, 1.0 }, ('%.0f'):fmt(RodObject[3] / 10.0))
-						imgui.SameLine()
-						imgui.TextColored({ 0.4, 0.1, 0.1, 1.0 }, ('%%'))
-					end
-					
+
+					ui.LocalRods:append(T{	index	= rod,
+											name	= RodObject[1],
+											snap	= RodObject[3],	}	)
 				end
-				
+			end
+		end
+
+		ui.LocalRods:sort(function (a, b)
+			return ((a.snap < b.snap) or ((a.snap == b.snap) and (a.name < b.name)))
+			end)			
+
+		for rod, RodObject in pairs(ui.LocalRods) do
+
+			if 0 == RodObject.snap then
+				imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%s'):fmt(RodObject.name));
+			else
+				imgui.TextColored({ 0.5, 0.1, 0.1, 1.0 }, ('%s'):fmt(RodObject.name));
 			end
 			
-		end	
-
+			imgui.SameLine(260)
+			imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
+			imgui.SameLine()
+			
+			if 0 == RodObject.snap then
+				imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('None'))
+			else
+				imgui.TextColored({ 0.5, 0.1, 0.1, 1.0 }, ('%.0f'):fmt(RodObject.snap / 10.0))
+				imgui.SameLine()
+				imgui.TextColored({ 0.5, 0.1, 0.1, 1.0 }, ('%%'))
+			end
+			
+		end
+		
 		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
 		imgui.Separator();
 		imgui.PopStyleColor()
@@ -341,65 +378,7 @@ function ui.render_FishGlobal(index)
 		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('Mode = Global'));
 		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('Selected = %d'):fmt(index));
 		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('%s (%d)'):fmt(ui.AllFish[index].name, ui.AllFish[index].index));
-	
-		--[[
-        local spell = lst[index];
-        local res   = AshitaCore:GetResourceManager():GetSpellById(spell.index);
 
-        if (res == nil) then
-            imgui.TextColored({ 1.0, 0.0, 0.0, 1.0 }, 'Failed to obtain spell information.');
-        else
-            -- Displays a stat value with some color.
-            
-			local function showStat(header, value)
-                imgui.TextColored({ 1.0, 1.0, 1.0, 1.0 }, header);
-                imgui.SameLine();
-                imgui.TextColored({ 0.2, 0.7, 1.0, 1.0 }, tostring(value));
-            end
-
-            imgui.PushTextWrapPos(imgui.GetFontSize() * 23.0);
-            imgui.TextColored({ 1.0, 0.2, 0.5, 1.0 }, res.Name[1]);
-            imgui.TextColored({ 1.0, 0.5, 0.2, 1.0 }, res.Description[1]);
-            imgui.PopTextWrapPos();
-            imgui.Separator();
-
-            showStat('Index        :', res.Index);
-            --showStat('Element      :', ui.get_spell_element(res.Element));
-            --showStat('Mana Cost    :', res.ManaCost);
-            --showStat('Cast Time    :', ('%.2f sec'):fmt(res.CastTime / 4.0));
-            --showStat('Recast Delay :', ('%.2f sec'):fmt(res.RecastDelay / 4.0));
-            --showStat('Level Needed :', res.LevelRequired[16 + 1]);
-            --showStat('Range        :', ('%d yalms'):fmt(AshitaCore:GetResourceManager():GetSpellRange(res.Index, false)));
-            --showStat('Area Range   :', ('%d yalms'):fmt(AshitaCore:GetResourceManager():GetSpellRange(res.Index, true)));
-
-            --imgui.TextColored({ 1.0, 1.0, 1.0, 1.0 }, 'Known        :');
-            --imgui.SameLine();
-            --if (spell.known) then
-              --  imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, 'Yes');
-            --else
-                --imgui.TextColored({ 1.0, 0.0, 0.0, 1.0 }, 'No');
-            --end
-
-            --imgui.Separator();
-            --imgui.TextColored({ 1.0, 1.0, 0.4, 1.0 }, 'Learned From The Following');
-            --imgui.Separator();
-
-			--[[
-            if (spell.zones:len() > 0) then
-                spell.zones:each(function (v, k)
-                    imgui.TextColored({ 1.0, 0.0, 1.0, 1.0 }, AshitaCore:GetResourceManager():GetString('zones.names', tonumber(k)));
-                    imgui.Indent();
-                    for _, vv in pairs(v) do
-                        imgui.TextColored({ 1.0, 1.0, 1.0, 1.0 }, tostring(vv));
-                    end
-                    imgui.Unindent();
-                end);
-            else
-                imgui.TextColored({ 1.0, 0.0, 1.0, 1.0 }, 'No data available.');
-            end
-			]]--
-        --end
-		
     end
 
 end
@@ -466,7 +445,7 @@ function ui.render_Tab_ThisZone()
 		imgui.PushStyleColor(ImGuiCol_ChildBg, { 0.42, 0.42, 0.5, 1.0 })
 	
         imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'Fish Available Here')
-        imgui.BeginChild('leftpane', { 330, 294, }, true)
+        imgui.BeginChild('leftpane', { 220, 294, }, true)
 
 			local	pushed = 0
 			
@@ -532,7 +511,7 @@ function ui.render_Tab_AllFish()
 		imgui.PushStyleColor(ImGuiCol_ChildBg, { 0.42, 0.42, 0.5, 1.0 });
 	
         imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'All Fish');
-        imgui.BeginChild('leftpane', { 330, 294, }, true);
+        imgui.BeginChild('leftpane', { 220, 294, }, true);
        
 			local index = 1;		
 			
@@ -597,8 +576,8 @@ function ui.render()
 
     imgui.PushStyleColor(ImGuiCol_Text, 			{0, 0.90, 0.90, 0.90});
 		
-	imgui.SetNextWindowSize({ 684, 407, })
-    imgui.SetNextWindowSizeConstraints({ 684 , 407, }, { FLT_MAX, FLT_MAX, })
+	imgui.SetNextWindowSize({ 594, 407, })
+    imgui.SetNextWindowSizeConstraints({ 594 , 407, }, { FLT_MAX, FLT_MAX, })
 
 	if (imgui.Begin('Almanac', ui.is_open, ImGuiWindowFlags_NoResize)) then
         
