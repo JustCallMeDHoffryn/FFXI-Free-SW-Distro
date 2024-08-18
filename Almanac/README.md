@@ -7,4 +7,4 @@ You will need these files plus the files in the data folder...
 - FishByZone.lua
 - Rods.lua
 
-Please take the time to read the manual.
+Please take the time to read the [manual]
