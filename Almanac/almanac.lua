@@ -1,4 +1,25 @@
 --	---------------------------------------------------------------------------
+--	This file contains the outer core of Almanac, it handles the global tables
+--	---------------------------------------------------------------------------
+--
+--	This code is FREE to use as you want, just please don't claim credit 
+--	for my work (such as it is)
+--
+--	Many of the ideas used in this Addon were learnt from the work of 
+--	the following coders ...
+--
+--		atom0s			..	blumon
+--		zach2good		..	Captain
+--		atom0s & Thorny	..	autojoin
+--		Sippius			..	Chains
+--	
+--		Team HXUI (Tirem, Shuu, colorglut, RheaCloud
+--
+--	A BIG thank you to the above for paving the way
+--
+--	---------------------------------------------------------------------------
+
+--	---------------------------------------------------------------------------
 	addon.name      = 'almanac'
 	addon.author    = 'DHoffryn'
 	addon.version   = '0.1'

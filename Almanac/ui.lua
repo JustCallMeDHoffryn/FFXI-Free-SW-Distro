@@ -30,6 +30,7 @@ local ZoneFish  	= require('data/FishByZone')		--	Table of fish per zone
 local AllFishPlus	= require('data/AllFish')			--	Table of all fish
 local AllRods		= require('data/Rods')				--	Table of fishing rods by item
 local AllBait		= require('data/Bait')				--	Table of bait/lure by item
+local AllZones		= require('data/AllZones')			--	Table of "tidy" zone names
 
 --	---------------------------------------------------------------------------
 --	Almanac UI Variables
@@ -48,7 +49,6 @@ local ui = {
 	AllFish			= T{},	--	All Fish table
 	LocalRods		= T{},	--	Local rod table
 	LocalBait		= T{},	--	Local bait table
-	ZoneNames		= T{},	--	Zones as text
 
     -- Main Window
 
@@ -70,6 +70,10 @@ local ui = {
         selected = -1,
     },
 
+	Equipped_Rod	= 0,
+	Equipped_Bait	= 0,
+	Bait_Count		= 0,
+	
     settings = settings.load(defaults),
 }
 
@@ -170,18 +174,7 @@ function ui.load()
 	ui.AllFish:sort(function (a, b)
 		return (a.name < b.name)
 		end)
-
-	--	Build a table of zone names for speed
-
-	for i=1, 300 do
 	
-		ui.ZoneNames:append(T{
-			ZoneID  = i,
-			name    = AshitaCore:GetResourceManager():GetString('zones.names', i),
-		})
-
-	end
-
 	print(chat.header(addon.name):append(chat.message('Ready to go fishing .. use /faf (Find A Fish) to toggle the interface ...')))
 	
 end
@@ -311,7 +304,7 @@ function ui.render_RodAndBait(index)
 		for bait, BaitObject in pairs(ui.LocalBait) do
 		
 			imgui.TextColored({ 1.0, 1.0, 0.4, 1.0 }, ('%s'):fmt(BaitObject.name))
-			imgui.SameLine(260)
+			imgui.SameLine(310)
 			imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
 			imgui.SameLine()
 			
@@ -363,7 +356,7 @@ function ui.render_RodAndBait(index)
 				imgui.TextColored({ 0.5, 0.1, 0.1, 1.0 }, ('%s'):fmt(RodObject.name))
 			end
 			
-			imgui.SameLine(260)
+			imgui.SameLine(310)
 			imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
 			imgui.SameLine()
 			
@@ -406,10 +399,9 @@ function ui.render_FishGlobal(index)
 			for key, fishTable in pairs(ZoneFish) do
 				for i, fishId in pairs(fishTable) do
 					if fishId == ui.AllFish[index].index then
-					
+
 						ui.ZonesThisFish:append(T{	Zone	= key,
-													Name	= ui.ZoneNames[key].name	}	)
-					
+													Name	= AllZones[key]	}	)
 					
 					end
 				end		
@@ -427,7 +419,7 @@ function ui.render_FishGlobal(index)
 
 			imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('%s'):fmt(ui.ZonesThisFish[i].Name))
 			
-			imgui.SameLine(260)
+			imgui.SameLine(310)
 			imgui.TextColored({ 0.0, 0.0, 0.0, 1.0 }, ('|'))
 			imgui.SameLine()
 			
@@ -569,13 +561,24 @@ function ui.render_Tab_AllFish()
         imgui.TextColored({ 0.0, 0.65, 1.00, 1.0 }, 'All Fish')
         imgui.BeginChild('leftpane', { 220, 294, }, true)
        
-			local index = 1		
+			local 	index  = 1		
+			local	pushed = 0
 			
 			for key, FishOrObject in pairs(ui.AllFish) do
+
+				if ui.Tab_AllFish.selected == index then
+                    imgui.PushStyleColor(ImGuiCol_Text, { 1.00, 0.5, 0.0, 1.0 })
+					pushed = 1
+				end
 
 				if (imgui.Selectable(('%s'):fmt(ui.AllFish[index].name), ui.Tab_AllFish.selected == index)) then
                     ui.Tab_AllFish.selected = index
                 end
+
+				if pushed == 1 then
+					imgui.PopStyleColor()
+					pushed = 0
+				end
 
 				index = index + 1
 
@@ -607,6 +610,42 @@ function ui.render_Tab_AllFish()
 	--	-----------------------------------------------------------------------
 end
 
+function ui.UpdateRodAndBait()
+	
+    local MyInventory = AshitaCore:GetMemoryManager():GetInventory()
+
+	--	Look for a rod item
+	
+	local RodItem = MyInventory:GetEquippedItem(2)
+
+	if (RodItem ~= nil and RodItem.Index ~= 0) then
+	
+		local InvItem = MyInventory:GetContainerItem(bit.band(RodItem.Index, 0xFF00) / 0x0100, RodItem.Index % 0x0100);
+	
+		if InvItem ~= nil then
+			ui.Equipped_Rod = InvItem.Id
+		end
+		
+    end
+
+	--	Look for a bait item (and count)
+	
+	local BaitItem = MyInventory:GetEquippedItem(3)
+    
+	if (BaitItem ~= nil and BaitItem.Index == 0) then
+	
+		local InvItem = MyInventory:GetContainerItem(bit.band(BaitItem.Index, 0xFF00) / 0x0100, BaitItem.Index % 0x0100);
+	
+		if InvItem ~= nil then
+			ui.Equipped_Bait	= InvItem.Id
+			ui.Bait_Count		= InvItem.Count
+		end
+		
+    end
+
+end
+
+
 --	---------------------------------------------------------------------------
 --	Renders the ui.
 --	---------------------------------------------------------------------------
@@ -617,6 +656,14 @@ function ui.render()
     
 	if (not ui.is_open[1]) then return end
 
+	--	Don't open if zone is 0 (logged out)
+	
+    local playerData = get_player_entity_data()
+
+    if playerData.zoneID < 1 then return end
+	
+	ui.UpdateRodAndBait()
+	
     --	Render (if we get this far)
 
     imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.25, 0.50, .75})
@@ -632,8 +679,8 @@ function ui.render()
 
     imgui.PushStyleColor(ImGuiCol_Text, 			{0, 0.90, 0.90, 0.90})
 		
-	imgui.SetNextWindowSize({ 594, 407, })
-    imgui.SetNextWindowSizeConstraints({ 594 , 407, }, { FLT_MAX, FLT_MAX, })
+	imgui.SetNextWindowSize({ 644, 407, })
+    imgui.SetNextWindowSizeConstraints({ 644 , 407, }, { FLT_MAX, FLT_MAX, })
 
 	if (imgui.Begin('Almanac', ui.is_open, ImGuiWindowFlags_NoResize)) then
         
