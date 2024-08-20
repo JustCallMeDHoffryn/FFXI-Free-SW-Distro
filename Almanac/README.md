@@ -6,5 +6,6 @@ You will need these files plus the files in the data folder...
 - Bait.lua
 - FishByZone.lua
 - Rods.lua
+- AllZones.lua
 
 Please take the time to read the [manual](./Manual/UserGuide.MD)
