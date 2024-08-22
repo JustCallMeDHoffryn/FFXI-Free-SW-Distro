@@ -1,0 +1,519 @@
+--	---------------------------------------------------------------------------
+--	This file contains most of the logic for TickerTap, it makes use of IMGUI 
+--	to render the various panels that display the packet information
+--	---------------------------------------------------------------------------
+
+--	---------------------------------------------------------------------------
+
+require('common')
+
+local chat			= require('chat')
+local imgui			= require('imgui')
+local settings 		= require('settings')
+
+local PacketsClientOUT		= require('data/PacketsA')	--	Table of packets OUT from the client TO the server
+local PacketsClientIN		= require('data/PacketsB')	--	Table of packets IN to the client FROM the server
+
+local DataProc 				= require('DataProc')
+local PacketDisplay			= require('PacketDisplay')
+
+--	---------------------------------------------------------------------------
+--	UI Variables
+--	---------------------------------------------------------------------------
+
+local defaults = T{
+    x = 100,
+    y = 500,
+    show = true,
+}
+
+local UI = {
+	
+    -- Main Window
+
+    ShowMain = { false, },
+	
+	PacketStack = T{},
+	
+	StackIn 	= 1,	--	Next slot for a new packet
+	StackSize	= 0,	--	How many packet are in the stack
+	WindowSize	= 24,	--	How many lines the window can show
+	
+    LineSel		=  -1,
+	
+	SeqRun		= T{true},
+	SeqSave		= T{true},
+	
+	CfgActive	= false,
+	
+    settings = settings.load(defaults),
+}
+
+function UI.BinToFloat32(bin1, bin2, bin3, bin4)
+
+  local sig = bin3 % 0x80 * 0x10000 + bin2 * 0x100 + bin1
+  local exp = bin4 % 0x80 * 2 + math.floor(bin3 / 0x80) - 0x7F
+  
+	if exp == 0x7F then 
+		return 0 
+	end
+  
+  return math.ldexp(math.ldexp(sig, -23) + 1, exp) * (bin4 < 0x80 and 1 or -1)
+
+end
+
+--	---------------------------------------------------------------------------
+--	Called when we want to force a save of the settings
+--	---------------------------------------------------------------------------
+
+function UI.SaveState(state)
+	
+	UI.settings.show = state
+	settings.save()
+
+end
+
+--	---------------------------------------------------------------------------
+--	Updates the addon settings.
+--
+--	{table} s - The new settings table to use for the addon settings.
+--	---------------------------------------------------------------------------
+
+
+local function UpdateSettings(s)
+    
+	--	Update the settings table..
+    
+	if (s ~= nil) then
+        UI.settings = s
+    end
+
+    --	Save the current settings..
+    
+	settings.save()
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Registers a callback for the settings to monitor for character switches.
+--	---------------------------------------------------------------------------
+
+settings.register('settings', 'settings_update', UpdateSettings)
+
+--	---------------------------------------------------------------------------
+--	Loads the UI
+--	---------------------------------------------------------------------------
+
+function UI.load()
+
+	UI.ShowMain[1] = UI.settings.show
+	
+	UI.PacketStack = T{}	-- Empty the table before we start
+
+	for key = 1, UI.WindowSize do
+		
+		UI.PacketStack:append(T{
+			index   	= key,
+			direction	= 0,
+			packet		= 0,
+			size		= 0,
+			now			= 0,
+			data		= 0,
+		})
+		
+	end
+	
+	--print(chat.header(addon.name):append(chat.message('Test: %.4f'):fmt(UI.BinToFloat32(0x40, 0x0F, 0x91, 0xC2))));
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Handle the IN TO THE SERVER packets (normally called OUT)
+--	---------------------------------------------------------------------------
+
+function UI.packet_in(Packet)
+
+	if UI.SeqRun[1] then
+
+		UI.PacketStack[UI.StackIn].direction	= 1
+		UI.PacketStack[UI.StackIn].packet		= Packet.id
+		UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
+		UI.PacketStack[UI.StackIn].size			= Packet.size
+		UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
+		
+		if UI.StackSize < UI.WindowSize then
+			UI.StackSize = UI.StackSize + 1 
+		end
+		
+		if UI.StackIn < UI.WindowSize then
+			UI.StackIn = UI.StackIn + 1
+		else
+			UI.StackIn = 1
+		end
+
+	end
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Handle the OUT FROM THE SERVER packets (normally called IN)
+--	---------------------------------------------------------------------------
+
+function UI.packet_out(Packet)
+
+	if UI.SeqRun[1] then
+	
+		UI.PacketStack[UI.StackIn].direction 	= -1
+		UI.PacketStack[UI.StackIn].packet		= Packet.id
+		UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
+		UI.PacketStack[UI.StackIn].size			= Packet.size
+		UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
+
+		if UI.StackSize < UI.WindowSize then
+			UI.StackSize = UI.StackSize + 1 
+		end
+		
+		if UI.StackIn < UI.WindowSize then
+			UI.StackIn = UI.StackIn + 1
+		else
+			UI.StackIn = 1
+		end
+
+	end
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Renders the Packet Viewer
+--	---------------------------------------------------------------------------
+
+function UI.PacketViewer()
+
+	imgui.SetNextWindowSize({ 540, 460, })
+
+    imgui.SetNextWindowSizeConstraints({ 540 , 460, }, { FLT_MAX, FLT_MAX, })
+
+	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
+	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
+	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
+    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.20, 0.40, .9})
+
+	if (imgui.Begin('Packet Viewer', UI.ShowMain, ImGuiWindowFlags_NoResize )) then	
+
+		--	If a line is selected, find the data and unpack it
+
+		if -1 ~= UI.LineSel then
+		
+			local ThisSlice = UI.LineSel + UI.StackIn - 1
+		
+			if ThisSlice > UI.WindowSize then ThisSlice = ThisSlice - UI.WindowSize end
+
+			if 0 ~= UI.PacketStack[ThisSlice].packet then
+
+				PacketDisplay.ShowPacket(UI.PacketStack[ThisSlice], UI)
+				
+			end
+			
+		end
+		
+		imgui.End()
+
+	end
+	
+	imgui.PopStyleColor(4)
+
+end
+
+--	---------------------------------------------------------------------------
+--	Renders the sequencer common 
+--	---------------------------------------------------------------------------
+
+function UI.RenderSequencerCommon()
+
+	imgui.SetNextWindowSize({ 480, 605, })
+
+    imgui.SetNextWindowSizeConstraints({ 480 , 605, }, { FLT_MAX, FLT_MAX, })
+
+	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
+	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
+	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
+    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.20, 0.40, .9})
+
+	if (imgui.Begin('Ticker Tape - Sequence', UI.ShowMain, ImGuiWindowFlags_NoResize + ImGuiWindowFlags_NoScrollbar)) then	
+		
+		--	Render the controls
+		
+		if (imgui.Checkbox('Run', UI.SeqRun)) then
+			UI.LineSel = -1
+		end
+
+		imgui.SameLine()
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		if (imgui.Checkbox('Save', UI.SeqSave)) then
+			--chatmon.settings.examined.examined.enabled = s.enabled[1];
+			--updated = true;
+		end
+
+		imgui.SameLine()
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+230)
+
+		if (imgui.Button('Configure')) then
+			if UI.CfgActive then
+				UI.CfgActive = false
+			else
+				UI.CfgActive = true
+			end
+		end
+		
+		imgui.SetCursorPosY(imgui.GetCursorPosY()+4)
+				
+		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
+		imgui.Separator()
+		imgui.PopStyleColor()
+			
+		imgui.SetCursorPosY(imgui.GetCursorPosY()+5)
+		
+		return true
+		
+	end
+	
+	return false
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Renders the sequencer while static
+--	---------------------------------------------------------------------------
+
+function UI.RenderSequencerStatic()
+
+	if UI.RenderSequencerCommon() then
+
+		local index = 1		--	We cannot trust the key, so we use an index as well	
+
+		for key = 1, UI.WindowSize do			--	key is a line counter from 1 to X
+		
+			local IsSelected = UI.LineSel == index
+
+			if (key <= UI.StackSize) then
+		
+				local ThisSlice = key + UI.StackIn - 1
+			
+				if ThisSlice > UI.WindowSize then ThisSlice = ThisSlice - UI.WindowSize end
+
+				if 0 ~= UI.PacketStack[ThisSlice].packet then
+
+					--	Time of packet
+					
+					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
+					imgui.SameLine()
+
+					--	Packet ID and direction
+					
+					local hexidstr = string.format('0x%.3X', UI.PacketStack[ThisSlice].packet)
+
+					if 1 == UI.PacketStack[ThisSlice].direction then				
+						imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('<< %s', hexidstr))		--	IN to client
+					else
+						imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('>> %s', hexidstr))		--	OUT from client
+					end
+
+					--	Packet size
+
+					imgui.SameLine()
+					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('(%03d)'):fmt(UI.PacketStack[ThisSlice].size))
+
+					imgui.SameLine()
+					imgui.PushStyleColor(ImGuiCol_Text, { 0.8, 0.8, 0.0, 1.0 })
+
+					--	The packet content can be selected
+				
+					local Pkt = ''
+					
+					if 1 == UI.PacketStack[ThisSlice].direction then
+					
+						if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then					
+							Pkt = string.format('%s', PacketsClientIN[UI.PacketStack[ThisSlice].packet][1])
+						else
+							Pkt = 'UKNOWN PACKET (IN)'
+						end
+						
+					else
+
+						if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then					
+							Pkt = string.format('%s', PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1])
+						else
+							Pkt = 'UKNOWN PACKET (OUT)'
+						end
+						
+					end
+					
+					local Str = string.format('%s\t\t\t\t\t\t%d', Pkt, key)
+						
+					if (imgui.Selectable(Str, IsSelected)) then
+						UI.LineSel = index
+						--print(chat.header(addon.name):append(chat.message('Select: %d / %d / %d'):fmt(UI.LineSel, key, index)));
+					end
+
+				end
+				
+			end
+			
+			index = index + 1
+			
+
+			
+		end
+
+		imgui.End()
+		imgui.PopStyleColor(4)
+	
+	end
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Renders the sequencer while active
+--	---------------------------------------------------------------------------
+
+function UI.RenderSequencer()
+
+	if UI.RenderSequencerCommon() then 
+	
+		--	The oldest slice is at the top of the window
+		
+		for key = 1, UI.WindowSize do
+
+			if (key <= UI.StackSize) then
+		
+				local ThisSlice = key + UI.StackIn - 1
+			
+				if ThisSlice > UI.WindowSize then ThisSlice = ThisSlice - UI.WindowSize end
+				
+				if 0 ~= UI.PacketStack[ThisSlice].packet then
+
+					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
+					imgui.SameLine()
+			
+					local hexidstr = string.format('0x%.3X', UI.PacketStack[ThisSlice].packet)
+
+					if 1 == UI.PacketStack[ThisSlice].direction then				
+						imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('<< %s', hexidstr))		--	IN to client
+					else
+						imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('>> %s', hexidstr))		--	OUT from client
+					end
+
+					imgui.SameLine()
+					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('(%03d)'):fmt(UI.PacketStack[ThisSlice].size))
+
+					--	Packets from the SERVER -> CLIENT
+					
+					if 1 == UI.PacketStack[ThisSlice].direction then
+
+						imgui.SameLine()
+						
+						if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then
+							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientIN[UI.PacketStack[ThisSlice].packet][1]) )
+						else
+							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (IN)') )
+						end
+					end
+
+					--	Packets from the CLIENT -> SERVER
+
+					if -1 == UI.PacketStack[ThisSlice].direction then
+
+						imgui.SameLine()
+
+						if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then
+							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1]) )
+						else
+							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (OUT)') )
+						end
+
+					end
+
+				end
+
+			end
+
+		end
+		
+		imgui.End()
+		imgui.PopStyleColor(4)	
+
+    end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Renders the UI.
+--	---------------------------------------------------------------------------
+
+function UI.Render()
+    
+	--	Don't waste time rendering if closed
+    
+	if (not UI.ShowMain[1]) then return end
+	
+    --	Render (if we get this far)
+
+	if UI.CfgActive then
+	
+    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.25, 0.50, .75})
+	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
+	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
+	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
+    imgui.PushStyleColor(ImGuiCol_Header, 			{0, 0.06, .16,  .7})
+    imgui.PushStyleColor(ImGuiCol_HeaderHovered, 	{0, 0.06, .16,  .9})
+    imgui.PushStyleColor(ImGuiCol_HeaderActive, 	{0, 0.06, .16,   1})
+    imgui.PushStyleColor(ImGuiCol_FrameBg, 			{0, 0.06, .16,   1})
+    imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1})
+    imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1})
+
+    imgui.PushStyleColor(ImGuiCol_Text, 			{0, 0.90, 0.90, 0.90})
+		
+	imgui.SetNextWindowSize({ 644, 407, })
+    imgui.SetNextWindowSizeConstraints({ 644 , 407, }, { FLT_MAX, FLT_MAX, })
+
+	--	Render the configuration window
+	
+	if (imgui.Begin('Ticker Tape - Configuration', UI.ShowMain, ImGuiWindowFlags_NoResize)) then
+        
+		imgui.PopStyleColor()
+		
+		--UI.renderTitleInfo()   
+
+	else
+
+		--	Even if we don't paint this needs to be popped
+		
+		imgui.PopStyleColor()
+	
+    end
+	
+    imgui.PopStyleColor(10)
+    imgui.End()
+
+	end
+	
+	--	Render the sequencer
+	
+	if UI.SeqRun[1] then
+		UI.RenderSequencer()
+	else
+		UI.RenderSequencerStatic()
+	end
+	
+	--	Render the packet viewer
+
+	if UI.SeqRun[1] == false then
+		UI.PacketViewer()
+	end
+	
+end
+
+-- Return the UI object
+
+return UI
