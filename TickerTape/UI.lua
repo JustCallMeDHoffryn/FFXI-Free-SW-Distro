@@ -3,6 +3,20 @@
 --	to render the various panels that display the packet information
 --	---------------------------------------------------------------------------
 
+local name    = 'tickertape'
+local author  = 'DHoffryn'
+local version = '0.1'
+local command = 'tt'
+
+--	---------------------------------------------------------------------------
+
+if addon then
+    addon.name 		= name
+    addon.author 	= author
+    addon.version	= version
+    addon.command	= command
+end
+
 --	---------------------------------------------------------------------------
 
 require('common')
@@ -10,6 +24,7 @@ require('common')
 local chat			= require('chat')
 local imgui			= require('imgui')
 local settings 		= require('settings')
+local MiniFiles		= require('MiniFiles')
 
 local PacketsClientOUT		= require('data/PacketsA')	--	Table of packets OUT from the client TO the server
 local PacketsClientIN		= require('data/PacketsB')	--	Table of packets IN to the client FROM the server
@@ -42,12 +57,50 @@ local UI = {
     LineSel		=  -1,
 	
 	SeqRun		= T{true},
-	SeqSave		= T{true},
+	SeqSave		= T{false},
 	
 	CfgActive	= false,
+	SaveLog		= false,
+
+	PacketsOUT	=	T{},
+	PacketsIN	=	T{},
 	
     settings = settings.load(defaults),
+	
+	FileName	= '',
 }
+
+--	---------------------------------------------------------------------------
+--	Gets a cleaned up version of the path 
+--	---------------------------------------------------------------------------
+
+function UI.GetScriptPath()
+	local path = addon.path
+    path = string.gsub(path, '\\\\', '\\')
+    return path
+end
+
+--	---------------------------------------------------------------------------
+--	Build the file name, call the open function
+--	---------------------------------------------------------------------------
+
+function UI.StartCap()
+
+    local date		= os.date('*t')
+    local RootDir	= UI.GetScriptPath() .. 'captures'
+    local FileName	= string.format('%.4d-%.2d-%.2d_%.2d_%.2d', date['year'], date['month'], date['day'], date['hour'], date['min'])
+
+	MiniFiles.MKDIR(RootDir)
+	MiniFiles.MKFile(RootDir, FileName)
+
+	UI.FileName	= FileName
+	UI.SaveLog	= true
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Open source .. 4 bytes to float (found on the web)
+--	---------------------------------------------------------------------------
 
 function UI.BinToFloat32(bin1, bin2, bin3, bin4)
 
@@ -123,7 +176,87 @@ function UI.load()
 		
 	end
 	
-	--print(chat.header(addon.name):append(chat.message('Test: %.4f'):fmt(UI.BinToFloat32(0x40, 0x0F, 0x91, 0xC2))));
+	for pkt, Rule in pairs(PacketsClientOUT) do
+
+		UI.PacketsOUT:append(T{
+			Index   	= pkt,
+			Name		= Rule[1],
+			View		= T{true},
+		})
+
+	end
+
+	UI.PacketsOUT:sort(function (a, b)
+		return (a.Index < b.Index)
+	end)
+
+	for pkt, Rule in pairs(PacketsClientIN) do
+
+		UI.PacketsIN:append(T{
+			Index   	= pkt,
+			Name		= Rule[1],
+			View		= T{true},
+		})
+
+	end
+
+	UI.PacketsIN:sort(function (a, b)
+		return (a.Index < b.Index)
+	end)
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Build an ASCII grid of the data packet
+--	---------------------------------------------------------------------------
+
+function UI.RawData(Packet)
+
+	local DataTable = T{}
+	local index		= 1
+	
+	--	Build the top line
+	
+    local Header1 = '        |  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n'
+	local Header2 = '    ----+------------------------------------------------\n'
+
+	DataTable = Header1 .. Header2
+
+	local	row = 0
+	local	col = 0
+	local	idx = 0
+
+	for byte = 1, Packet.size do
+
+		if col == 0 then
+
+			local Str = string.format('      %d | ', row)
+			DataTable = DataTable .. Str
+
+		end
+	
+		DataTable = DataTable .. string.format('%.2X ', Packet.data:byte(idx + 1, idx + 1))
+
+		idx = idx + 1
+		col = col + 1
+
+		if col > 15 then
+			col = 0
+			row = row + 1
+
+			DataTable = DataTable .. '\n'
+			
+		end
+
+	end
+
+	if col ~= 0 then
+		DataTable = DataTable .. '\n'
+	end
+
+	DataTable = DataTable .. '\n'
+	
+	return DataTable
 	
 end
 
@@ -135,23 +268,47 @@ function UI.packet_in(Packet)
 
 	if UI.SeqRun[1] then
 
-		UI.PacketStack[UI.StackIn].direction	= 1
-		UI.PacketStack[UI.StackIn].packet		= Packet.id
-		UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
-		UI.PacketStack[UI.StackIn].size			= Packet.size
-		UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
+		local Show = true
 		
-		if UI.StackSize < UI.WindowSize then
-			UI.StackSize = UI.StackSize + 1 
-		end
+		for pkt, Rule in pairs(UI.PacketsIN) do
+			if (Packet.id == Rule.Index) then
+				Show = Rule.View[1]
+			end
+		end	
 		
-		if UI.StackIn < UI.WindowSize then
-			UI.StackIn = UI.StackIn + 1
-		else
-			UI.StackIn = 1
-		end
+		if Show then
 
+			UI.PacketStack[UI.StackIn].direction	= 1
+			UI.PacketStack[UI.StackIn].packet		= Packet.id
+			UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
+			UI.PacketStack[UI.StackIn].size			= Packet.size
+			UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
+			
+			if UI.StackSize < UI.WindowSize then
+				UI.StackSize = UI.StackSize + 1 
+			end
+			
+			if UI.StackIn < UI.WindowSize then
+				UI.StackIn = UI.StackIn + 1
+			else
+				UI.StackIn = 1
+			end
+
+		end
+		
 	end
+	
+    if UI.SaveLog then
+
+		local RootDir = UI.GetScriptPath() .. 'captures'
+
+		local timestr = os.date('%Y-%m-%d %H:%M:%S')
+		local hexidstr = string.format('0x%.3X', Packet.id)
+		
+		MiniFiles.FileAppend(RootDir, UI.FileName, string.format('[%s] Incoming packet %s\n', timestr, hexidstr))
+		MiniFiles.FileAppend(RootDir, UI.FileName, UI.RawData(Packet))
+
+    end
 	
 end
 
@@ -161,25 +318,49 @@ end
 
 function UI.packet_out(Packet)
 
-	if UI.SeqRun[1] then
-	
-		UI.PacketStack[UI.StackIn].direction 	= -1
-		UI.PacketStack[UI.StackIn].packet		= Packet.id
-		UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
-		UI.PacketStack[UI.StackIn].size			= Packet.size
-		UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
+	if UI.SeqRun[1] then		
+			
+		local Show = true
+		
+		for pkt, Rule in pairs(UI.PacketsOUT) do
+			if (Packet.id == Rule.Index) then
+				Show = Rule.View[1]
+			end
+		end	
+		
+		if Show then
+			
+			UI.PacketStack[UI.StackIn].direction 	= -1
+			UI.PacketStack[UI.StackIn].packet		= Packet.id
+			UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
+			UI.PacketStack[UI.StackIn].size			= Packet.size
+			UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
 
-		if UI.StackSize < UI.WindowSize then
-			UI.StackSize = UI.StackSize + 1 
+			if UI.StackSize < UI.WindowSize then
+				UI.StackSize = UI.StackSize + 1 
+			end
+			
+			if UI.StackIn < UI.WindowSize then
+				UI.StackIn = UI.StackIn + 1
+			else
+				UI.StackIn = 1
+			end
+		
 		end
 		
-		if UI.StackIn < UI.WindowSize then
-			UI.StackIn = UI.StackIn + 1
-		else
-			UI.StackIn = 1
-		end
-
 	end
+	
+    if UI.SaveLog then
+
+		local RootDir = UI.GetScriptPath() .. 'captures'
+
+		local timestr = os.date('%Y-%m-%d %H:%M:%S')
+		local hexidstr = string.format('0x%.3X', Packet.id)
+		
+		MiniFiles.FileAppend(RootDir, UI.FileName, string.format('[%s] Outgoing packet %s\n', timestr, hexidstr))
+		MiniFiles.FileAppend(RootDir, UI.FileName, UI.RawData(Packet))
+
+    end
 	
 end
 
@@ -189,9 +370,9 @@ end
 
 function UI.PacketViewer()
 
-	imgui.SetNextWindowSize({ 540, 460, })
+	imgui.SetNextWindowSize({ 540, 600, })
 
-    imgui.SetNextWindowSizeConstraints({ 540 , 460, }, { FLT_MAX, FLT_MAX, })
+    imgui.SetNextWindowSizeConstraints({ 540 , 600, }, { FLT_MAX, FLT_MAX, })
 
 	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
@@ -204,13 +385,14 @@ function UI.PacketViewer()
 
 		if -1 ~= UI.LineSel then
 		
-			local ThisSlice = UI.LineSel + UI.StackIn - 1
+			local ThisSlice = UI.StackIn - UI.StackSize + UI.LineSel - 1
 		
 			if ThisSlice > UI.WindowSize then ThisSlice = ThisSlice - UI.WindowSize end
+			if ThisSlice < 1 then ThisSlice = ThisSlice + UI.WindowSize end
 
 			if 0 ~= UI.PacketStack[ThisSlice].packet then
 
-				PacketDisplay.ShowPacket(UI.PacketStack[ThisSlice], UI)
+				PacketDisplay.ShowPacket(UI.PacketStack[ThisSlice], UI, ThisSlice)
 				
 			end
 			
@@ -251,12 +433,34 @@ function UI.RenderSequencerCommon()
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 		if (imgui.Checkbox('Save', UI.SeqSave)) then
-			--chatmon.settings.examined.examined.enabled = s.enabled[1];
-			--updated = true;
+			
+			if UI.SeqSave[1] then
+
+				--	Start a new save
+				UI.StartCap()
+				
+			else
+			
+				--	Stop saving
+				UI.SaveLog = false
+				
+			end
+			
+		end
+
+		local XPos = imgui.GetCursorPosX()
+
+		if UI.SaveLog then
+		
+			imgui.SameLine()
+			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ' -> ')
+			imgui.SameLine()
+			imgui.TextColored({ 1.0, 0.2, 0.2, 1.0 }, UI.FileName)
+
 		end
 
 		imgui.SameLine()
-		imgui.SetCursorPosX(imgui.GetCursorPosX()+230)
+		imgui.SetCursorPosX(XPos + 370)
 
 		if (imgui.Button('Configure')) then
 			if UI.CfgActive then
@@ -282,25 +486,52 @@ function UI.RenderSequencerCommon()
 	
 end
 
+function UI.GetPacketName(ThisSlice)
+
+	local Pkt = ''
+	
+	if 1 == UI.PacketStack[ThisSlice].direction then
+	
+		if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then					
+			Pkt = string.format('%s', PacketsClientIN[UI.PacketStack[ThisSlice].packet][1])
+		else
+			Pkt = 'UKNOWN PACKET (IN)'
+		end
+		
+	else
+
+		if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then					
+			Pkt = string.format('%s', PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1])
+		else
+			Pkt = 'UKNOWN PACKET (OUT)'
+		end
+		
+	end
+	
+	return Pkt
+
+end
+
 --	---------------------------------------------------------------------------
 --	Renders the sequencer while static
 --	---------------------------------------------------------------------------
 
 function UI.RenderSequencerStatic()
 
-	if UI.RenderSequencerCommon() then
+	if UI.RenderSequencerCommon() and UI.StackSize > 0 then 
 
 		local index = 1		--	We cannot trust the key, so we use an index as well	
 
-		for key = 1, UI.WindowSize do			--	key is a line counter from 1 to X
+		for key = 0, (UI.StackSize - 1) do
 		
 			local IsSelected = UI.LineSel == index
 
 			if (key <= UI.StackSize) then
 		
-				local ThisSlice = key + UI.StackIn - 1
+				local ThisSlice = UI.StackIn - UI.StackSize + key
 			
 				if ThisSlice > UI.WindowSize then ThisSlice = ThisSlice - UI.WindowSize end
+				if ThisSlice < 1 then ThisSlice = ThisSlice + UI.WindowSize end
 
 				if 0 ~= UI.PacketStack[ThisSlice].packet then
 
@@ -328,32 +559,11 @@ function UI.RenderSequencerStatic()
 					imgui.PushStyleColor(ImGuiCol_Text, { 0.8, 0.8, 0.0, 1.0 })
 
 					--	The packet content can be selected
-				
-					local Pkt = ''
-					
-					if 1 == UI.PacketStack[ThisSlice].direction then
-					
-						if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then					
-							Pkt = string.format('%s', PacketsClientIN[UI.PacketStack[ThisSlice].packet][1])
-						else
-							Pkt = 'UKNOWN PACKET (IN)'
-						end
-						
-					else
-
-						if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then					
-							Pkt = string.format('%s', PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1])
-						else
-							Pkt = 'UKNOWN PACKET (OUT)'
-						end
-						
-					end
-					
-					local Str = string.format('%s\t\t\t\t\t\t%d', Pkt, key)
+										
+					local Str = string.format('%s\t\t\t\t\t\t%d', UI.GetPacketName(ThisSlice), key)
 						
 					if (imgui.Selectable(Str, IsSelected)) then
 						UI.LineSel = index
-						--print(chat.header(addon.name):append(chat.message('Select: %d / %d / %d'):fmt(UI.LineSel, key, index)));
 					end
 
 				end
@@ -361,8 +571,6 @@ function UI.RenderSequencerStatic()
 			end
 			
 			index = index + 1
-			
-
 			
 		end
 
@@ -379,59 +587,56 @@ end
 
 function UI.RenderSequencer()
 
-	if UI.RenderSequencerCommon() then 
+	if UI.RenderSequencerCommon() and UI.StackSize > 0 then 
 	
 		--	The oldest slice is at the top of the window
 		
-		for key = 1, UI.WindowSize do
+		for key = 0, (UI.StackSize - 1) do
 
-			if (key <= UI.StackSize) then
+			local ThisSlice = UI.StackIn - UI.StackSize + key
 		
-				local ThisSlice = key + UI.StackIn - 1
-			
-				if ThisSlice > UI.WindowSize then ThisSlice = ThisSlice - UI.WindowSize end
+			if ThisSlice > UI.WindowSize then ThisSlice = ThisSlice - UI.WindowSize end
+			if ThisSlice < 1 then ThisSlice = ThisSlice + UI.WindowSize end
+
+			if 0 ~= UI.PacketStack[ThisSlice].packet then
+
+				imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
+				imgui.SameLine()
+		
+				local hexidstr = string.format('0x%.3X', UI.PacketStack[ThisSlice].packet)
+
+				if 1 == UI.PacketStack[ThisSlice].direction then				
+					imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('<< %s', hexidstr))		--	IN to client
+				else
+					imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('>> %s', hexidstr))		--	OUT from client
+				end
+
+				imgui.SameLine()
+				imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('(%03d)'):fmt(UI.PacketStack[ThisSlice].size))
+
+				--	Packets from the SERVER -> CLIENT
 				
-				if 0 ~= UI.PacketStack[ThisSlice].packet then
-
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
-					imgui.SameLine()
-			
-					local hexidstr = string.format('0x%.3X', UI.PacketStack[ThisSlice].packet)
-
-					if 1 == UI.PacketStack[ThisSlice].direction then				
-						imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('<< %s', hexidstr))		--	IN to client
-					else
-						imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('>> %s', hexidstr))		--	OUT from client
-					end
+				if 1 == UI.PacketStack[ThisSlice].direction then
 
 					imgui.SameLine()
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('(%03d)'):fmt(UI.PacketStack[ThisSlice].size))
-
-					--	Packets from the SERVER -> CLIENT
 					
-					if 1 == UI.PacketStack[ThisSlice].direction then
-
-						imgui.SameLine()
-						
-						if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then
-							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientIN[UI.PacketStack[ThisSlice].packet][1]) )
-						else
-							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (IN)') )
-						end
+					if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then
+						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientIN[UI.PacketStack[ThisSlice].packet][1]) )
+					else
+						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (IN)') )
 					end
+				end
 
-					--	Packets from the CLIENT -> SERVER
+				--	Packets from the CLIENT -> SERVER
 
-					if -1 == UI.PacketStack[ThisSlice].direction then
+				if -1 == UI.PacketStack[ThisSlice].direction then
 
-						imgui.SameLine()
+					imgui.SameLine()
 
-						if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then
-							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1]) )
-						else
-							imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (OUT)') )
-						end
-
+					if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then
+						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1]) )
+					else
+						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (OUT)') )
 					end
 
 				end
@@ -448,6 +653,46 @@ function UI.RenderSequencer()
 end
 
 --	---------------------------------------------------------------------------
+--	Renders list of OUT packets so the user can disable/enable them
+--	---------------------------------------------------------------------------
+
+function UI.Render_OutList()
+
+	for pkt, Rule in pairs(UI.PacketsOUT) do
+	
+		local name = string.format('[0x%.3X]', Rule.Index)
+				
+		if (imgui.Checkbox(name, Rule.View)) then
+		end
+		
+		imgui.SameLine()
+		imgui.TextColored( { 0.2, 1.0, 0.2, 1.0 }, ('%s'):fmt(Rule.Name) )
+		
+	end
+	
+end
+
+--	---------------------------------------------------------------------------
+--	Renders list of IN packets so the user can disable/enable them
+--	---------------------------------------------------------------------------
+
+function UI.Render_InList()
+
+	for pkt, Rule in pairs(UI.PacketsIN) do
+	
+		local name = string.format('[0x%.3X]', Rule.Index)
+		
+		if (imgui.Checkbox(name, Rule.View)) then
+		end
+		
+		imgui.SameLine()
+		imgui.TextColored( { 0.6, 0.6, 1.0, 1.0 }, ('%s'):fmt(Rule.Name) )
+		
+	end
+
+end
+
+--	---------------------------------------------------------------------------
 --	Renders the UI.
 --	---------------------------------------------------------------------------
 
@@ -457,48 +702,48 @@ function UI.Render()
     
 	if (not UI.ShowMain[1]) then return end
 	
-    --	Render (if we get this far)
+	--	-----------------------------------------------------------------------
+	--	Render the configuration window
+	--	-----------------------------------------------------------------------
 
 	if UI.CfgActive then
 	
-    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.25, 0.50, .75})
-	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
-	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
-	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
-    imgui.PushStyleColor(ImGuiCol_Header, 			{0, 0.06, .16,  .7})
-    imgui.PushStyleColor(ImGuiCol_HeaderHovered, 	{0, 0.06, .16,  .9})
-    imgui.PushStyleColor(ImGuiCol_HeaderActive, 	{0, 0.06, .16,   1})
-    imgui.PushStyleColor(ImGuiCol_FrameBg, 			{0, 0.06, .16,   1})
-    imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1})
-    imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1})
+		imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.25, 0.50, .75})
+		imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
+		imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
+		imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
+		imgui.PushStyleColor(ImGuiCol_Header, 			{0, 0.06, .16,  .7})
+		imgui.PushStyleColor(ImGuiCol_HeaderHovered, 	{0, 0.06, .16,  .9})
+		imgui.PushStyleColor(ImGuiCol_HeaderActive, 	{0, 0.06, .16,   1})
+		imgui.PushStyleColor(ImGuiCol_FrameBg, 			{0, 0.06, .16,   1})
+		imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1})
+		imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1})
 
-    imgui.PushStyleColor(ImGuiCol_Text, 			{0, 0.90, 0.90, 0.90})
-		
-	imgui.SetNextWindowSize({ 644, 407, })
-    imgui.SetNextWindowSizeConstraints({ 644 , 407, }, { FLT_MAX, FLT_MAX, })
-
-	--	Render the configuration window
+		imgui.SetNextWindowSize({ 744, 454, })
+		imgui.SetNextWindowSizeConstraints({ 744 , 454, }, { FLT_MAX, FLT_MAX, })
 	
-	if (imgui.Begin('Ticker Tape - Configuration', UI.ShowMain, ImGuiWindowFlags_NoResize)) then
-        
-		imgui.PopStyleColor()
-		
-		--UI.renderTitleInfo()   
+		if (imgui.Begin('Ticker Tape - Configuration', UI.ShowMain, ImGuiWindowFlags_NoResize)) then
+			
+			imgui.BeginChild('InPacketPanel', { 360, 414, }, true)
+				UI.Render_OutList()
+			imgui.EndChild()
 
-	else
+			imgui.SameLine()
 
-		--	Even if we don't paint this needs to be popped
+			imgui.BeginChild('OutPacketPanel', { 0, 414, }, true)
+				UI.Render_InList()
+			imgui.EndChild()
+
+		end
 		
-		imgui.PopStyleColor()
-	
-    end
-	
-    imgui.PopStyleColor(10)
-    imgui.End()
+		imgui.PopStyleColor(10)
+		imgui.End()
 
 	end
 	
+	--	-----------------------------------------------------------------------
 	--	Render the sequencer
+	--	-----------------------------------------------------------------------
 	
 	if UI.SeqRun[1] then
 		UI.RenderSequencer()
@@ -506,7 +751,9 @@ function UI.Render()
 		UI.RenderSequencerStatic()
 	end
 	
+	--	-----------------------------------------------------------------------
 	--	Render the packet viewer
+	--	-----------------------------------------------------------------------
 
 	if UI.SeqRun[1] == false then
 		UI.PacketViewer()

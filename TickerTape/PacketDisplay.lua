@@ -12,11 +12,18 @@ local imgui	= require('imgui')
 local PktDspRulesIN		= require('data/RulesIn')	--	Table of IN  display rules
 local PktDspRulesOUT	= require('data/RulesOut')	--	Table of OUT display rules
 
+local Decode			= require('decode')
+
 local PacketDisplay = {
 
 	ShowRaw		= T{true},
+	Flags		= T{},
 
 }
+
+--	---------------------------------------------------------------------------
+--	Found on the internet, open source code (not mine)
+--	---------------------------------------------------------------------------
 
 function PacketDisplay.BinToFloat32(bin1, bin2, bin3, bin4)
 
@@ -101,7 +108,7 @@ end
 --	Called when we want to encode a packet into a text string
 --	---------------------------------------------------------------------------
 
-function PacketDisplay.ShowPacket(Packet, UI)
+function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 	
 	--	Allow the user to toggle raw
 	
@@ -115,12 +122,23 @@ function PacketDisplay.ShowPacket(Packet, UI)
 	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, Packet.now)
 	imgui.SameLine()
 
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+275)
+	local xPos = imgui.GetCursorPosX()
+
+	if nil ~= UI then
+		if 1 == Packet.direction then
+			imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, UI.GetPacketName(ThisSlice))
+		else
+			imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, UI.GetPacketName(ThisSlice))
+		end
+	end
+	
+	imgui.SameLine()
+	imgui.SetCursorPosX(xPos+275)
 
 	if ((imgui.Button('<<')) and (-1 ~= UI.LineSel)) then
-	
+		
 		if 1 == UI.LineSel then
-			UI.LineSel = UI.WindowSize
+			UI.LineSel = UI.StackSize
 		else
 			UI.LineSel = UI.LineSel - 1
 		end
@@ -129,20 +147,15 @@ function PacketDisplay.ShowPacket(Packet, UI)
 
 	imgui.SameLine()
 
-	if ((imgui.Button('>>')) and (-1 ~= UI.LineSel)) then
+	if ((imgui.Button('>>')) and (-1 ~= UI.LineSel)) then		--	Show next
 	
-		if UI.WindowSize == UI.LineSel then
+		if UI.LineSel == UI.StackSize then
 			UI.LineSel = 1
 		else
 			UI.LineSel = UI.LineSel + 1
 		end
 
 	end
-
-	--imgui.SameLine()
-	
-	--imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-	--imgui.SameLine()
 	
 	imgui.SetCursorPosY(imgui.GetCursorPosY()+4)
 	
@@ -150,11 +163,12 @@ function PacketDisplay.ShowPacket(Packet, UI)
 	imgui.Separator()
 	imgui.PopStyleColor()
 
-	imgui.SetCursorPosY(imgui.GetCursorPosY()+10)
-	
 	--	Show the raw data
 	
-	PacketDisplay.RenderRawData(Packet)	
+	if PacketDisplay.ShowRaw[1] then 
+		imgui.SetCursorPosY(imgui.GetCursorPosY()+10)
+		PacketDisplay.RenderRawData(Packet)	
+	end
 	
 	--	Now try and unpack it
 	
@@ -173,11 +187,13 @@ function PacketDisplay.ShowPacket(Packet, UI)
 			
 					ThisPacketRules:append(T{	Index	= Item,
 												Offset	= ItemDef[1],
-												Bit		= ItemDef[2],
-												String	= ItemDef[3],
+												Bit		= ItemDef[2],	--	This is the value of the bit, ie bit 7 is 128
+												String	= ItemDef[3],	--	Caption to tell the user what it is
 												Format	= ItemDef[4],
-												Decode	= ItemDef[5],
-												Info	= ItemDef[6],
+												Logic	= ItemDef[5],	--	none, use, set
+												Flag	= ItemDef[6],	--	Can use or set (see Format) flag from 1 to 1024
+												Decode	= ItemDef[7],	--	Basic decode type
+												Info	= ItemDef[8],	--	Info shown when type is a bool
 											} )
 					
 				end
@@ -197,11 +213,13 @@ function PacketDisplay.ShowPacket(Packet, UI)
 			
 					ThisPacketRules:append(T{	Index	= Item,
 												Offset	= ItemDef[1],
-												Bit		= ItemDef[2],
-												String	= ItemDef[3],
+												Bit		= ItemDef[2],	--	This is the value of the bit, ie bit 7 is 128
+												String	= ItemDef[3],	--	Caption to tell the user what it is
 												Format	= ItemDef[4],
-												Decode	= ItemDef[5],
-												Info	= ItemDef[6],
+												Logic	= ItemDef[5],	--	none, use, set
+												Flag	= ItemDef[6],	--	Can use or set (see Format) flag from 1 to 1024
+												Decode	= ItemDef[7],	--	Basic decode type
+												Info	= ItemDef[8],	--	Info shown when type is a bool
 											} )
 					
 				end
@@ -212,6 +230,12 @@ function PacketDisplay.ShowPacket(Packet, UI)
 	end
 
 	if found then
+		
+		--	All flags are off by default
+		
+		for i=1, 1024 do
+			PacketDisplay.Flags[i] = 0
+		end
 		
 		-- Sort the rules, we want them in order
 
@@ -248,16 +272,22 @@ function PacketDisplay.ShowPacket(Packet, UI)
 				
 				imgui.TableSetColumnIndex(3)
 
-				--	A single BYTE
+				--	A single BYTE - Can use FLAGS
 
 				if 'byte' == RuleTable.Format then
 
 					local value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
 					
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
-					imgui.SameLine()
-					imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.2X)'):fmt(value) )
-				
+					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+						imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(value) )
+						imgui.SameLine()
+						imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.2X)'):fmt(value) )
+					else
+						imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
+						imgui.SameLine()
+						imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.2X)'):fmt(value) )
+					end
+					
 				end
 
 				--	Reverse WORD (2 bytes in reverse)
@@ -276,84 +306,68 @@ function PacketDisplay.ShowPacket(Packet, UI)
 				--	Reverse DWORD (4 bytes in reverse)
 				
 				if 'rdword' == RuleTable.Format then
-						
-					local party = AshitaCore:GetMemoryManager():GetParty()
-					local player = AshitaCore:GetMemoryManager():GetPlayer()
-					local index = party:GetMemberTargetIndex(0)
-
-					local partyZoneID = party:GetMemberZone(0)
-					local ZoneBase    = 0x1001000 + ((partyZoneID - 1) * 4096)
-					
-					local value = 0
-					
-					for i = 0, 3 do
-						value = (value * 256) + PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3 - i)
-						end
-						
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
-					imgui.SameLine()
-					imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('  ..  0x%.8X'):fmt(value) )
-
-					if 'entity' == RuleTable.Decode then
-					
-						local npc  = value - ZoneBase
-						local name = AshitaCore:GetMemoryManager():GetEntity():GetName(npc)
-
-						imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(name) )
-						
-					end
-				
+					Decode.RDWORD(PacketDisplay, RuleTable, Packet)				
 				end
 				
-				if 'special' == RuleTable.Format then
+				--	Single bit flags (the Info is shown if the flag bit is set)
 				
-					--	Single bit flags (the Info is shown if the flag bit is set)
-					
-					if 'bool' == RuleTable.Decode then
-					
-						local Byte = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-						local Flag = RuleTable.Bit
-						local BAND = bit.band(Byte, Flag)
+				if 'bool' == RuleTable.Decode then
+				
+					local Byte = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
+					local Flag = RuleTable.Bit
+					local BAND = bit.band(Byte, Flag)
 
-						if BAND ~= 0 then
-							imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.Info) )
-						else
-							imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('- - -') )
-						end
-						
+					if BAND ~= 0 then
+						PacketDisplay.Flags[RuleTable.Flag] = 1
+						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+					else
+						PacketDisplay.Flags[RuleTable.Flag] = 0
+						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(RuleTable.Info) )
 					end
-
-					--	Position decode (X,Y,Z)
 					
-					if 'xyz' == RuleTable.Decode then
-					
-						local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-						local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1)
-						local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 2)
-						local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3)
-
+				end
+			
+				--	Position decode (X,Y,Z) - Can use flags
+				
+				if 'xyz' == RuleTable.Decode then
+				
+					local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
+					local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1)
+					local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 2)
+					local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3)
+				
+					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+					else
 						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-
-						imgui.SameLine()
-
-						local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 4)
-						local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 5)
-						local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 6)
-						local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 7)
-
-						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-
-						imgui.SameLine()
-
-						local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 8)
-						local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 9)
-						local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 10)
-						local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 11)
-
-						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-							
 					end
+					
+					imgui.SameLine()
 
+					local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 4)
+					local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 5)
+					local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 6)
+					local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 7)
+
+					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+					else
+						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+					end
+					
+					imgui.SameLine()
+
+					local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 8)
+					local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 9)
+					local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 10)
+					local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 11)
+
+					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+					else
+						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+					end
+					
 				end
 				
 			end
