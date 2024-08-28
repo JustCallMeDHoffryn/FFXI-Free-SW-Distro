@@ -32,14 +32,21 @@ local PacketsClientIN		= require('data/PacketsB')	--	Table of packets IN to the 
 local DataProc 				= require('DataProc')
 local PacketDisplay			= require('PacketDisplay')
 
+local ShowMain				= T{}
+
 --	---------------------------------------------------------------------------
 --	UI Variables
 --	---------------------------------------------------------------------------
 
 local defaults = T{
-    x = 100,
+    
+	x = 100,
     y = 500,
     show = true,
+
+	ShowIn = T{},
+	ShowOut = T{},
+
 }
 
 local UI = {
@@ -65,9 +72,15 @@ local UI = {
 	PacketsOUT	=	T{},
 	PacketsIN	=	T{},
 	
-    settings = settings.load(defaults),
+    settings 	= settings.load(defaults),
 	
 	FileName	= '',
+
+	Dirty  		= T{ 0.7, 0.7, 0.7, 1.0, },
+	Grey1  		= T{ 0.4, 0.4, 0.4, 1.0, },
+	OffW		= T{ 0.9, 0.9, 0.9, 1.0, },
+	Yellow 		= T{ 0.9, 0.9, 0.0, 1.0, },
+	Green		= T{ 0.0, 1.0, 0.0, 1.0, },
 }
 
 --	---------------------------------------------------------------------------
@@ -95,23 +108,6 @@ function UI.StartCap()
 
 	UI.FileName	= FileName
 	UI.SaveLog	= true
-	
-end
-
---	---------------------------------------------------------------------------
---	Open source .. 4 bytes to float (found on the web)
---	---------------------------------------------------------------------------
-
-function UI.BinToFloat32(bin1, bin2, bin3, bin4)
-
-  local sig = bin3 % 0x80 * 0x10000 + bin2 * 0x100 + bin1
-  local exp = bin4 % 0x80 * 2 + math.floor(bin3 / 0x80) - 0x7F
-  
-	if exp == 0x7F then 
-		return 0 
-	end
-  
-  return math.ldexp(math.ldexp(sig, -23) + 1, exp) * (bin4 < 0x80 and 1 or -1)
 
 end
 
@@ -119,9 +115,8 @@ end
 --	Called when we want to force a save of the settings
 --	---------------------------------------------------------------------------
 
-function UI.SaveState(state)
-	
-	UI.settings.show = state
+function UI.SaveState()
+
 	settings.save()
 
 end
@@ -132,19 +127,18 @@ end
 --	{table} s - The new settings table to use for the addon settings.
 --	---------------------------------------------------------------------------
 
-
 local function UpdateSettings(s)
-    
+
 	--	Update the settings table..
-    
+
 	if (s ~= nil) then
         UI.settings = s
     end
 
     --	Save the current settings..
-    
-	settings.save()
-	
+
+	settings.save(defaults)
+
 end
 
 --	---------------------------------------------------------------------------
@@ -158,6 +152,8 @@ settings.register('settings', 'settings_update', UpdateSettings)
 --	---------------------------------------------------------------------------
 
 function UI.load()
+
+	--print('load')
 
 	UI.ShowMain[1] = UI.settings.show
 	
@@ -178,11 +174,19 @@ function UI.load()
 	
 	for pkt, Rule in pairs(PacketsClientOUT) do
 
+		local show = UI.settings.ShowOut[pkt]
+		
+		if nil == show then
+			show = true
+		end
+
 		UI.PacketsOUT:append(T{
 			Index   	= pkt,
 			Name		= Rule[1],
-			View		= T{true},
+			View		= T{show},
 		})
+
+		UI.settings.ShowOut[pkt] = show
 
 	end
 
@@ -192,18 +196,30 @@ function UI.load()
 
 	for pkt, Rule in pairs(PacketsClientIN) do
 
+		local show = UI.settings.ShowIn[pkt]
+		
+		if nil == show then
+			show = true
+		end
+
 		UI.PacketsIN:append(T{
 			Index   	= pkt,
 			Name		= Rule[1],
-			View		= T{true},
+			View		= T{show},
 		})
+
+		UI.settings.ShowIn[pkt] = show
 
 	end
 
 	UI.PacketsIN:sort(function (a, b)
 		return (a.Index < b.Index)
 	end)
-	
+
+	--	Push the settings back to disk
+
+	settings.save()
+
 end
 
 --	---------------------------------------------------------------------------
@@ -370,6 +386,8 @@ end
 
 function UI.PacketViewer()
 
+	--print('In Packet Viewer')
+
 	imgui.SetNextWindowSize({ 540, 600, })
 
     imgui.SetNextWindowSizeConstraints({ 540 , 600, }, { FLT_MAX, FLT_MAX, })
@@ -435,17 +453,13 @@ function UI.RenderSequencerCommon()
 		if (imgui.Checkbox('Save', UI.SeqSave)) then
 			
 			if UI.SeqSave[1] then
-
 				--	Start a new save
 				UI.StartCap()
-				
 			else
-			
 				--	Stop saving
 				UI.SaveLog = false
-				
 			end
-			
+
 		end
 
 		local XPos = imgui.GetCursorPosX()
@@ -469,35 +483,39 @@ function UI.RenderSequencerCommon()
 				UI.CfgActive = true
 			end
 		end
-		
+
 		imgui.SetCursorPosY(imgui.GetCursorPosY()+4)
-				
+
 		imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
 		imgui.Separator()
 		imgui.PopStyleColor()
-			
+
 		imgui.SetCursorPosY(imgui.GetCursorPosY()+5)
-		
+
 		return true
-		
+
 	end
-	
+
 	return false
-	
+
 end
+
+--	---------------------------------------------------------------------------
+--	Get a meaningful packet name
+--	---------------------------------------------------------------------------
 
 function UI.GetPacketName(ThisSlice)
 
 	local Pkt = ''
-	
+
 	if 1 == UI.PacketStack[ThisSlice].direction then
-	
+
 		if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then					
 			Pkt = string.format('%s', PacketsClientIN[UI.PacketStack[ThisSlice].packet][1])
 		else
 			Pkt = 'UKNOWN PACKET (IN)'
 		end
-		
+
 	else
 
 		if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then					
@@ -505,9 +523,9 @@ function UI.GetPacketName(ThisSlice)
 		else
 			Pkt = 'UKNOWN PACKET (OUT)'
 		end
-		
+
 	end
-	
+
 	return Pkt
 
 end
@@ -662,7 +680,9 @@ function UI.Render_OutList()
 	
 		local name = string.format('[0x%.3X]', Rule.Index)
 				
-		if (imgui.Checkbox(name, Rule.View)) then
+		if (imgui.Checkbox(name, Rule.View)) then 
+			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
+			UI.SaveState()
 		end
 		
 		imgui.SameLine()
@@ -683,6 +703,8 @@ function UI.Render_InList()
 		local name = string.format('[0x%.3X]', Rule.Index)
 		
 		if (imgui.Checkbox(name, Rule.View)) then
+			UI.settings.ShowIn[Rule.Index] = Rule.View[1]
+			UI.SaveState()
 		end
 		
 		imgui.SameLine()
@@ -722,7 +744,7 @@ function UI.Render()
 		imgui.SetNextWindowSize({ 744, 454, })
 		imgui.SetNextWindowSizeConstraints({ 744 , 454, }, { FLT_MAX, FLT_MAX, })
 	
-		if (imgui.Begin('Ticker Tape - Configuration', UI.ShowMain, ImGuiWindowFlags_NoResize)) then
+		if (imgui.Begin('Ticker Tape - Configuration', nil, ImGuiWindowFlags_NoResize)) then
 			
 			imgui.BeginChild('InPacketPanel', { 360, 414, }, true)
 				UI.Render_OutList()

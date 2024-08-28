@@ -12,7 +12,9 @@ local imgui	= require('imgui')
 local PktDspRulesIN		= require('data/RulesIn')	--	Table of IN  display rules
 local PktDspRulesOUT	= require('data/RulesOut')	--	Table of OUT display rules
 
+local CentralData		= require('CentralData')
 local Decode			= require('decode')
+local DataProc			= require('DataProc')
 
 local PacketDisplay = {
 
@@ -105,11 +107,332 @@ function PacketDisplay.RenderRawData(Packet)
 end
 
 --	---------------------------------------------------------------------------
---	Called when we want to encode a packet into a text string
+--	This returns a byte, word, dword etc
+--	---------------------------------------------------------------------------
+
+function PacketDisplay.GetValueByType(Packet, RuleTable)
+
+	local value = 0
+
+	if 'byte' == RuleTable.Format then
+		value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
+	elseif 'word' == RuleTable.Format then
+		value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1) + (256 * PacketDisplay.ExtractByte(Packet, RuleTable.Offset))
+	elseif 'rword' == RuleTable.Format then
+		value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset) + (256 * PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1))
+	elseif 'dword' == RuleTable.Format then
+		for i = 0, 3 do
+			value = (value * 256) + PacketDisplay.ExtractByte(Packet, RuleTable.Offset + i)
+		end
+	elseif 'rdword' == RuleTable.Format then
+		for i = 0, 3 do
+			value = (value * 256) + PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3 - i)
+		end
+	end
+
+	--	Whatever we have, even if it is zero, pass it back
+
+	return value
+
+end
+
+--	---------------------------------------------------------------------------
+--	This executes a single rule 
+--	---------------------------------------------------------------------------
+
+function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
+
+	--	-----------------------------------------------------------------------
+	--	Set a BOOL flag we may use later MUST be a single BYTE
+	--	-----------------------------------------------------------------------
+
+	if 'bool' == RuleTable.Decode then
+	
+		local Byte = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
+		local Flag = RuleTable.Bit
+		local BAND = bit.band(Byte, Flag)
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		if BAND ~= 0 then
+			PacketDisplay.Flags[RuleTable.Flag] = 1
+			imgui.TextColored( { 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+		else
+			PacketDisplay.Flags[RuleTable.Flag] = 0
+			imgui.TextColored( { 0.5, 0.5, 0.5, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+		end
+
+		return	--	We don't want to exectute anything else ...
+		
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Player action
+	--	-----------------------------------------------------------------------
+
+	if 'action' == RuleTable.Decode then
+
+		local action = PacketDisplay.GetValueByType(Packet, RuleTable)
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(Decode.Actions[action]) )
+		else
+			imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(Decode.Actions[action]) )
+		end
+	
+		return	--	We don't want to exectute anything else ...
+
+	end
+
+	--	-----------------------------------------------------------------------
+	--	XYZ - May have more than one format, so check
+	--	-----------------------------------------------------------------------
+
+	if 'xyz' == RuleTable.Decode then
+		if '12bytes' == RuleTable.Format then
+			Decode.XYZ_12Bytes(Packet, PacketDisplay, RuleTable)
+			return
+		end
+	end
+	
+	--	-----------------------------------------------------------------------
+	--	Entity - This is a FULL ID, converted into a local index before display
+	--	-----------------------------------------------------------------------
+	
+	if 'entity' == RuleTable.Decode then
+
+		local value = PacketDisplay.GetValueByType(Packet, RuleTable)
+		local party = AshitaCore:GetMemoryManager():GetParty()
+		local zone	= party:GetMemberZone(0)
+		local base	= 0x1001000 + ((zone - 1) * 4096)
+		local npc	= value - base
+		local name	= AshitaCore:GetMemoryManager():GetEntity():GetName(npc)
+		local Brush = UI.Yellow
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+			Brush = UI.Grey1
+		end
+
+		if nil == name then
+			name  = "Cannot Identify Entity"
+			Brush = UI.Dirty
+		end
+	
+		imgui.TextColored(Brush, ('%s'):fmt(name) )
+
+		--	NOTE .. we allow 'fall through' as we want the core to show the number
+
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Entity ID - This is just the index, so we can find what this is
+	--	without having to know thw zone etc.. this may be a player so check
+	--	-----------------------------------------------------------------------
+
+	if 'eid' == RuleTable.Decode then
+					
+		local EID = PacketDisplay.GetValueByType(Packet, RuleTable)
+		
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		if 0 == EID then
+			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('- - -') )
+		else
+		
+			local name = AshitaCore:GetMemoryManager():GetEntity():GetName(EID)
+
+			if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+				imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(name) )
+			else
+				imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(name) )
+			end
+		
+		end					
+		
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Job (from table)
+	--	-----------------------------------------------------------------------
+
+	if 'job' == RuleTable.Decode then
+		Decode.JobByte(PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Direction (this is WRONG in every packet viewer I have seen)
+	--	-----------------------------------------------------------------------
+
+	if 'dir' == RuleTable.Decode then
+		Decode.Direction(UI, PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Bit extraction
+	--	-----------------------------------------------------------------------
+
+	if 'bits' == RuleTable.Decode then
+		Decode.Bits(UI, PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	String (usually a name)
+	--	-----------------------------------------------------------------------
+
+	if 'string' == RuleTable.Decode then
+		Decode.String(PacketDisplay, RuleTable, Packet)
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Time is shown as D, H, M, S and MS
+	--	-----------------------------------------------------------------------
+	
+	if 'time' == RuleTable.Decode then
+	
+		local value = PacketDisplay.GetValueByType(Packet, RuleTable)
+
+		local ms    = value % 1000
+		local value = value / 1000
+		local sec   = value % 60
+		local value = value / 60
+		local min   = value % 60
+		local value = value / 60
+		local hour  = value % 24
+		local value = value / 24
+		
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d days  %.2d:%.2d:%.2d  %d ms'):fmt(value, hour, min, sec, ms) )
+		else
+			imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%d days  %.2d:%.2d:%.2d  %d ms'):fmt(value, hour, min, sec, ms) )
+		end
+
+		return
+
+	end
+
+	--	-----------------------------------------------------------------------
+	--	If we get here then any special cases have been processed so we just
+	--	dump the data we have. Flags can be used in all cases
+	--	-----------------------------------------------------------------------
+
+	if 'byte' == RuleTable.Format then
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		local value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
+
+		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+			imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%d'):fmt(value) )
+			imgui.SameLine()
+			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.2X)'):fmt(value) )
+		else
+			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
+			imgui.SameLine()
+			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.2X)'):fmt(value) )
+		end
+
+		Decode.CheckForTable(UI, RuleTable, value)
+
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Reverse WORD (2 bytes in reverse)
+	--	-----------------------------------------------------------------------
+	
+	if 'rword' == RuleTable.Format or 'word' == RuleTable.Format then
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+		
+		local value = PacketDisplay.GetValueByType(Packet, RuleTable)
+	
+		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+			imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%d'):fmt(value) )
+			imgui.SameLine()
+			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.4X)'):fmt(value) )
+		else
+			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
+			imgui.SameLine()
+			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.4X)'):fmt(value) )
+		end
+
+		Decode.CheckForTable(UI, RuleTable, value)
+
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Reverse DWORD (4 bytes in reverse)
+	--	-----------------------------------------------------------------------
+
+	if 'rdword' == RuleTable.Format then
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		local value = PacketDisplay.GetValueByType(Packet, RuleTable)
+
+		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(value) )
+			imgui.SameLine()
+			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('  ..  0x%.8X'):fmt(value) )
+		else
+			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
+			imgui.SameLine()
+			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('  ..  0x%.8X'):fmt(value) )
+		end
+
+		Decode.CheckForTable(UI, RuleTable, value)
+
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Called to verify that a rule exists in the correct table
+--	---------------------------------------------------------------------------
+
+function PacketDisplay.VerifyPacketRule(direction, target)
+
+	local found = false
+
+	if 1 == direction then
+
+		for Group, RuleTable in pairs(PktDspRulesIN) do
+
+			if nil ~= RuleTable and Group == target then
+				found = true
+			end
+		end
+
+	else
+
+		for Group, RuleTable in pairs(PktDspRulesOUT) do
+
+			if nil ~= RuleTable and Group == target then
+				found = true
+			end
+		end
+
+	end
+
+	return found
+
+end
+
+--	---------------------------------------------------------------------------
+--	Called when we want to decode a packet into a series of text lines
 --	---------------------------------------------------------------------------
 
 function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
-	
+
 	--	Allow the user to toggle raw
 	
 	if (imgui.Checkbox('Raw', PacketDisplay.ShowRaw)) then
@@ -164,214 +487,159 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 	imgui.PopStyleColor()
 
 	--	Show the raw data
-	
+
 	if PacketDisplay.ShowRaw[1] then 
 		imgui.SetCursorPosY(imgui.GetCursorPosY()+10)
 		PacketDisplay.RenderRawData(Packet)	
 	end
 	
+	--	-----------------------------------------------------------------------
 	--	Now try and unpack it
-	
-	local ThisPacketRules = T{}		--	Start with an empty table
-	local found = false
-	
-	if 1 == Packet.direction then
-	
-		for Group, RuleTable in pairs(PktDspRulesIN) do
-	
-			if nil ~= RuleTable and Group == Packet.packet then
+	--	-----------------------------------------------------------------------
 
+	local found = false
+
+	--print(string.format('Searching for Rules'))
+
+	CentralData.PacketRules = T{}
+
+	if 1 == Packet.direction then
+
+		for Group, RuleTable in pairs(PktDspRulesIN) do
+
+			if nil ~= RuleTable and Group == Packet.packet then
 				found = true
-				
-				for Item, ItemDef in pairs(RuleTable) do
-			
-					ThisPacketRules:append(T{	Index	= Item,
-												Offset	= ItemDef[1],
-												Bit		= ItemDef[2],	--	This is the value of the bit, ie bit 7 is 128
-												String	= ItemDef[3],	--	Caption to tell the user what it is
-												Format	= ItemDef[4],
-												Logic	= ItemDef[5],	--	none, use, set
-												Flag	= ItemDef[6],	--	Can use or set (see Format) flag from 1 to 1024
-												Decode	= ItemDef[7],	--	Basic decode type
-												Info	= ItemDef[8],	--	Info shown when type is a bool
-											} )
-					
-				end
-				
+				DataProc.DecodeRuleTable(RuleTable)
 			end
 		end
-		
-	else
-	
-		for Group, RuleTable in pairs(PktDspRulesOUT) do
-	
-			if nil ~= RuleTable and Group == Packet.packet then
 
+	else
+
+		for Group, RuleTable in pairs(PktDspRulesOUT) do
+
+			if nil ~= RuleTable and Group == Packet.packet then
 				found = true
-				
-				for Item, ItemDef in pairs(RuleTable) do
-			
-					ThisPacketRules:append(T{	Index	= Item,
-												Offset	= ItemDef[1],
-												Bit		= ItemDef[2],	--	This is the value of the bit, ie bit 7 is 128
-												String	= ItemDef[3],	--	Caption to tell the user what it is
-												Format	= ItemDef[4],
-												Logic	= ItemDef[5],	--	none, use, set
-												Flag	= ItemDef[6],	--	Can use or set (see Format) flag from 1 to 1024
-												Decode	= ItemDef[7],	--	Basic decode type
-												Info	= ItemDef[8],	--	Info shown when type is a bool
-											} )
-					
-				end
-				
+				DataProc.DecodeRuleTable(RuleTable)
 			end
 		end
 
 	end
 
+	--	-----------------------------------------------------------------------
+	--	If we found rules for this packet then decode it ...
+	--	-----------------------------------------------------------------------
+
 	if found then
-		
+
 		--	All flags are off by default
-		
+
+		CentralData.IDX = 1
+
 		for i=1, 1024 do
 			PacketDisplay.Flags[i] = 0
 		end
-		
-		-- Sort the rules, we want them in order
 
-		ThisPacketRules:sort(function (a, b)
+		-- Sort the rules, we want them in numerical order
+
+		CentralData.PacketRules:sort(function (a, b)
 			return (a.Index < b.Index)
 		end)
+
+		local RuleSize = 0
+
+		for Rule, RuleTable in pairs(CentralData.PacketRules) do
+			RuleSize = RuleSize + 1
+		end
+
+		--print(string.format('Rules: %d', RuleSize))
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY()+20)
 
 		if imgui.BeginTable("table1", 4, ImGuiTableFlags_Borders + ImGuiTableFlags_RowBg) then
 
-			imgui.TableSetupColumn("1", ImGuiTableColumnFlags_WidthFixed, 50)
-			imgui.TableSetupColumn("2", ImGuiTableColumnFlags_WidthFixed, 20)
-			imgui.TableSetupColumn("3", ImGuiTableColumnFlags_WidthFixed, 80)
+			imgui.TableSetupColumn("1", ImGuiTableColumnFlags_WidthFixed, 45)
+			imgui.TableSetupColumn("2", ImGuiTableColumnFlags_WidthFixed, 30)
+			imgui.TableSetupColumn("3", ImGuiTableColumnFlags_WidthFixed, 100)
 
-			for Rule, RuleTable in pairs(ThisPacketRules) do
+			--	---------------------------------------------------------------
+			--	Execute the rules, one at a time
+			--	---------------------------------------------------------------
+
+			while RuleSize > 0 and CentralData.IDX > 0 and CentralData.IDX <= RuleSize do
+
+				--print(string.format('Line %d of %d', CentralData.IDX, RuleSize))
 			
-				imgui.TableNextRow()
+				RuleSize = 0
 
-				imgui.TableSetColumnIndex(0)
-				imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('0x%.3X'):fmt(RuleTable.Offset) )
+				for Rule, RuleTable in pairs(CentralData.PacketRules) do
+					RuleSize = RuleSize + 1
+				end
+					
+				RuleTable = CentralData.PacketRules[CentralData.IDX]
 
-				imgui.TableSetColumnIndex(1)
-				imgui.SetCursorPosX(imgui.GetCursorPosX()+5)
-				
-				if RuleTable.Bit ~= 0 then
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(RuleTable.Bit) )
+				if ((nil ~= RuleTable.Command) and (#RuleTable.Command > 0)) then
+
+					if DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet) then
+						CentralData.IDX = CentralData.IDX + 1
+					else
+
+						RuleSize = 0
+
+						for Rule, RuleTable in pairs(CentralData.PacketRules) do
+							RuleSize = RuleSize + 1
+						end
+		
+						RuleTable = CentralData.PacketRules[CentralData.IDX]
+
+					end
+
 				else
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('-') )
-				end
-				
-				imgui.TableSetColumnIndex(2)
-				imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
-				
-				imgui.TableSetColumnIndex(3)
 
-				--	A single BYTE - Can use FLAGS
+					--	If we get here then it is a normal decode line
 
-				if 'byte' == RuleTable.Format then
+					imgui.TableNextRow()
 
-					local value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
+					imgui.TableSetColumnIndex(0)
+					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('0x%.3X'):fmt(RuleTable.Offset) )
+
+					imgui.TableSetColumnIndex(1)
+
+					local Bit = '-'
 					
-					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-						imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(value) )
-						imgui.SameLine()
-						imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.2X)'):fmt(value) )
-					else
-						imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
-						imgui.SameLine()
-						imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.2X)'):fmt(value) )
+					if RuleTable.Bit ~= 0 or RuleTable.Decode == 'bits' then
+						Bit = string.format('%d', RuleTable.Bit)
 					end
-					
-				end
 
-				--	Reverse WORD (2 bytes in reverse)
-				
-				if 'rword' == RuleTable.Format then
-								
-					local value1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-					local value2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1)
-					
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value1 + (value2 * 256)) )
-					imgui.SameLine()
-					imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.4X)'):fmt(value1 + (value2 * 256)) )
-				
-				end
+					local TextWidth = imgui.CalcTextSize(Bit)
+					imgui.SetCursorPosX(imgui.GetCursorPosX()+((imgui.GetColumnWidth() - TextWidth)/2))
 
-				--	Reverse DWORD (4 bytes in reverse)
-				
-				if 'rdword' == RuleTable.Format then
-					Decode.RDWORD(PacketDisplay, RuleTable, Packet)				
-				end
-				
-				--	Single bit flags (the Info is shown if the flag bit is set)
-				
-				if 'bool' == RuleTable.Decode then
-				
-					local Byte = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-					local Flag = RuleTable.Bit
-					local BAND = bit.band(Byte, Flag)
-
-					if BAND ~= 0 then
-						PacketDisplay.Flags[RuleTable.Flag] = 1
-						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+					if RuleTable.Bit ~= 0 or RuleTable.Decode == 'bits' then
+						imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(Bit) )
 					else
-						PacketDisplay.Flags[RuleTable.Flag] = 0
-						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+						imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%s'):fmt(Bit) )
 					end
+
+					imgui.TableSetColumnIndex(2)
+					local TextWidth = imgui.CalcTextSize(RuleTable.String)
+					imgui.SetCursorPosX(imgui.GetCursorPosX()+((imgui.GetColumnWidth() - TextWidth)/2))
+					imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
+					
+					imgui.TableSetColumnIndex(3)
+					
+					--	Now execute the rule ...
+
+					PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
+
+					CentralData.IDX = CentralData.IDX + 1
 					
 				end
-			
-				--	Position decode (X,Y,Z) - Can use flags
-				
-				if 'xyz' == RuleTable.Decode then
-				
-					local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-					local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1)
-					local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 2)
-					local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3)
-				
-					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-					else
-						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-					end
-					
-					imgui.SameLine()
 
-					local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 4)
-					local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 5)
-					local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 6)
-					local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 7)
-
-					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-					else
-						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-					end
-					
-					imgui.SameLine()
-
-					local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 8)
-					local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 9)
-					local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 10)
-					local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 11)
-
-					if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-						imgui.TextColored( { 0.4, 0.4, 0.4, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-					else
-						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-					end
-					
-				end
-				
 			end
-	
+
+			--	---------------------------------------------------------------
+			--	END of rules loop
+			--	---------------------------------------------------------------
+
 			imgui.EndTable()
 
 		end
