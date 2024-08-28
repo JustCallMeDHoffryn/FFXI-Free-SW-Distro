@@ -1,5 +1,5 @@
 --	------------------------------
---	File handler
+--	File handler (interface to OS)
 --	------------------------------
 
 require('io')
@@ -30,35 +30,35 @@ end
 function MiniFiles.MKDIR(NewFolder)
 
 	--	If the folder exists
-	
+
 	if not MiniFiles.FolderExists(NewFolder) then
 		MiniFiles.CreateFolder(NewFolder)
 	end
-	
+
 end
 
 function MiniFiles.MKFile(Folder, NewFile)
 
 	--	If the folder exists
-	
+
 	if MiniFiles.FolderExists(Folder) then
-		
+
 		if not MiniFiles.FileExists(Folder .. '\\' .. NewFile) then
-		
+
 			local fh = io.open(Folder .. '\\' .. NewFile .. '.log', 'w')
 
 			fh:write('')
 			fh:close()
-		
+
 		end
 	end
-	
+
 end
 
 function MiniFiles.FileAppend(Folder, File, Data)
 
     local hFile = io.open(Folder .. '\\' .. File .. '.log', 'a')
-    
+
 	hFile:write(Data)
 	hFile:flush()
     hFile:close()
