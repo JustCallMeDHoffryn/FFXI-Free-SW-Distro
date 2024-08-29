@@ -9,7 +9,7 @@ local AllRules = {
 [0xFFF] = {
 
 	[1]  =  {  {},  {0},   'byte',    'raw',    'Packet ID'	},
-	[2]  =  {  {},  {1},   'byte',    'raw',    'Data Size'	},
+	[2]  =  {  {},  {1},   'byte',    'psize',  'Data Size'	},
 	[3]  =  {  {},  {2},   'rword',   'raw',    'Sync'	    },
 	[4]  =  {  {'return' } },
 
@@ -37,6 +37,15 @@ local AllRules = {
 	[3]   =	{	{},  {8},   'rword',   'raw',    'Target Index'	   },
 	[4]   =	{	{},  {10},  'rword',   'action', 'Action Type'	   },
 	[5]   =	{	{},  {12},  'rword',   'raw',    'Action',  {},  2 },
+
+	},	--	[[ COMPLETE ]]
+
+--	Speach --------------------------------------------------------------------
+
+[0x0B5] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 									},
+	[2]  =	{  {}, {6},       'byte',     'string',  'Command'  	},
 
 	},	--	[[ COMPLETE ]]
 
