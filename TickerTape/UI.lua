@@ -77,10 +77,12 @@ local UI = {
 	FileName	= '',
 
 	Dirty  		= T{ 0.7, 0.7, 0.7, 1.0, },
+	Soft  		= T{ 0.6, 0.6, 0.6, 1.0, },
 	Grey1  		= T{ 0.4, 0.4, 0.4, 1.0, },
 	OffW		= T{ 0.9, 0.9, 0.9, 1.0, },
 	Yellow 		= T{ 0.9, 0.9, 0.0, 1.0, },
 	Green		= T{ 0.0, 1.0, 0.0, 1.0, },
+	Red			= T{ 0.7, 0.0, 0.0, 1.0, },
 }
 
 --	---------------------------------------------------------------------------
@@ -152,8 +154,6 @@ settings.register('settings', 'settings_update', UpdateSettings)
 --	---------------------------------------------------------------------------
 
 function UI.load()
-
-	--print('load')
 
 	UI.ShowMain[1] = UI.settings.show
 	
@@ -296,7 +296,7 @@ function UI.packet_in(Packet)
 
 			UI.PacketStack[UI.StackIn].direction	= 1
 			UI.PacketStack[UI.StackIn].packet		= Packet.id
-			UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
+			UI.PacketStack[UI.StackIn].now			= os.date('[%M:%S]', os.time())
 			UI.PacketStack[UI.StackIn].size			= Packet.size
 			UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
 			
@@ -348,7 +348,7 @@ function UI.packet_out(Packet)
 			
 			UI.PacketStack[UI.StackIn].direction 	= -1
 			UI.PacketStack[UI.StackIn].packet		= Packet.id
-			UI.PacketStack[UI.StackIn].now			= os.date('[%H:%M:%S]', os.time())
+			UI.PacketStack[UI.StackIn].now			= os.date('[%M:%S]', os.time())
 			UI.PacketStack[UI.StackIn].size			= Packet.size
 			UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
 
@@ -386,16 +386,14 @@ end
 
 function UI.PacketViewer()
 
-	--print('In Packet Viewer')
+	imgui.SetNextWindowSize({ 540, 605, })
 
-	imgui.SetNextWindowSize({ 540, 600, })
-
-    imgui.SetNextWindowSizeConstraints({ 540 , 600, }, { FLT_MAX, FLT_MAX, })
+    imgui.SetNextWindowSizeConstraints({ 540 , 605, }, { FLT_MAX, FLT_MAX, })
 
 	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
 	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
-    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.20, 0.40, .9})
+    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0.15, 0.20, 0.20, .8})
 
 	if (imgui.Begin('Packet Viewer', UI.ShowMain, ImGuiWindowFlags_NoResize )) then	
 
@@ -430,14 +428,14 @@ end
 
 function UI.RenderSequencerCommon()
 
-	imgui.SetNextWindowSize({ 480, 605, })
+	imgui.SetNextWindowSize({ 420, 605, })
 
-    imgui.SetNextWindowSizeConstraints({ 480 , 605, }, { FLT_MAX, FLT_MAX, })
+    imgui.SetNextWindowSizeConstraints({ 420 , 605, }, { FLT_MAX, FLT_MAX, })
 
 	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
 	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
-    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.20, 0.40, .9})
+    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0.15, 0.20, 0.20, .8})
 
 	if (imgui.Begin('Ticker Tape - Sequence', UI.ShowMain, ImGuiWindowFlags_NoResize + ImGuiWindowFlags_NoScrollbar)) then	
 		
@@ -467,16 +465,16 @@ function UI.RenderSequencerCommon()
 		if UI.SaveLog then
 		
 			imgui.SameLine()
-			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ' -> ')
+			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ':')
 			imgui.SameLine()
 			imgui.TextColored({ 1.0, 0.2, 0.2, 1.0 }, UI.FileName)
 
 		end
 
 		imgui.SameLine()
-		imgui.SetCursorPosX(XPos + 370)
+		imgui.SetCursorPosX(XPos + 340)
 
-		if (imgui.Button('Configure')) then
+		if (imgui.Button('Config')) then
 			if UI.CfgActive then
 				UI.CfgActive = false
 			else
@@ -531,6 +529,49 @@ function UI.GetPacketName(ThisSlice)
 end
 
 --	---------------------------------------------------------------------------
+--	Renders the common sequence line header
+--	---------------------------------------------------------------------------
+
+function UI.SeqHeader(ThisSlice)
+
+	--	Time of packet
+	
+	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
+	imgui.SameLine()
+
+	--	Packet ID and direction
+	
+	local hexidstr = string.format('%.3X', UI.PacketStack[ThisSlice].packet)
+
+	if 1 == UI.PacketStack[ThisSlice].direction then
+		imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('C'))				--	IN to client
+		imgui.SameLine()
+		imgui.TextColored({ 1.0, 1.0, 1.0, 1.0 }, string.format('<<'))
+		imgui.SameLine()
+		imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('%s', hexidstr))
+	else
+		imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('%s', hexidstr))	--	OUT from client
+		imgui.SameLine()
+		imgui.TextColored({ 1.0, 1.0, 1.0, 1.0 }, string.format('>>'))
+		imgui.SameLine()
+		imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('S'))
+	end
+
+	imgui.SameLine()
+	local XPos = imgui.GetCursorPosX()
+
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+2)
+	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, (':'))
+
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+10)
+	imgui.PushStyleColor(ImGuiCol_Text, { 0.9, 0.9, 0.0, 1.0 })
+	imgui.SameLine()
+
+end
+
+--	---------------------------------------------------------------------------
 --	Renders the sequencer while static
 --	---------------------------------------------------------------------------
 
@@ -553,28 +594,7 @@ function UI.RenderSequencerStatic()
 
 				if 0 ~= UI.PacketStack[ThisSlice].packet then
 
-					--	Time of packet
-					
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
-					imgui.SameLine()
-
-					--	Packet ID and direction
-					
-					local hexidstr = string.format('0x%.3X', UI.PacketStack[ThisSlice].packet)
-
-					if 1 == UI.PacketStack[ThisSlice].direction then				
-						imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('<< %s', hexidstr))		--	IN to client
-					else
-						imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('>> %s', hexidstr))		--	OUT from client
-					end
-
-					--	Packet size
-
-					imgui.SameLine()
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('(%03d)'):fmt(UI.PacketStack[ThisSlice].size))
-
-					imgui.SameLine()
-					imgui.PushStyleColor(ImGuiCol_Text, { 0.8, 0.8, 0.0, 1.0 })
+					UI.SeqHeader(ThisSlice)
 
 					--	The packet content can be selected
 										
@@ -618,30 +638,18 @@ function UI.RenderSequencer()
 
 			if 0 ~= UI.PacketStack[ThisSlice].packet then
 
-				imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
-				imgui.SameLine()
-		
-				local hexidstr = string.format('0x%.3X', UI.PacketStack[ThisSlice].packet)
-
-				if 1 == UI.PacketStack[ThisSlice].direction then				
-					imgui.TextColored({ 0.2, 1.0, 0.2, 1.0 }, string.format('<< %s', hexidstr))		--	IN to client
-				else
-					imgui.TextColored({ 0.6, 0.6, 1.0, 1.0 }, string.format('>> %s', hexidstr))		--	OUT from client
-				end
-
-				imgui.SameLine()
-				imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('(%03d)'):fmt(UI.PacketStack[ThisSlice].size))
+				UI.SeqHeader(ThisSlice)
 
 				--	Packets from the SERVER -> CLIENT
-				
+
 				if 1 == UI.PacketStack[ThisSlice].direction then
 
 					imgui.SameLine()
 					
 					if nil ~= PacketsClientIN[UI.PacketStack[ThisSlice].packet] then
-						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientIN[UI.PacketStack[ThisSlice].packet][1]) )
+						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(PacketsClientIN[UI.PacketStack[ThisSlice].packet][1]) )
 					else
-						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (IN)') )
+						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('UNKNOWN PACKET (IN)') )
 					end
 				end
 
@@ -652,9 +660,9 @@ function UI.RenderSequencer()
 					imgui.SameLine()
 
 					if nil ~= PacketsClientOUT[UI.PacketStack[ThisSlice].packet] then
-						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('%s'):fmt(PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1]) )
+						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(PacketsClientOUT[UI.PacketStack[ThisSlice].packet][1]) )
 					else
-						imgui.TextColored( { 0.8, 0.8, 0.0, 1.0 }, ('UNKNOWN PACKET (OUT)') )
+						imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('UNKNOWN PACKET (OUT)') )
 					end
 
 				end
@@ -686,7 +694,7 @@ function UI.Render_OutList()
 		end
 		
 		imgui.SameLine()
-		imgui.TextColored( { 0.2, 1.0, 0.2, 1.0 }, ('%s'):fmt(Rule.Name) )
+		imgui.TextColored( { 0.6, 0.6, 1.0, 1.0 }, ('%s'):fmt(Rule.Name) )
 		
 	end
 	
@@ -708,7 +716,7 @@ function UI.Render_InList()
 		end
 		
 		imgui.SameLine()
-		imgui.TextColored( { 0.6, 0.6, 1.0, 1.0 }, ('%s'):fmt(Rule.Name) )
+		imgui.TextColored( { 0.2, 1.0, 0.2, 1.0 }, ('%s'):fmt(Rule.Name) )
 		
 	end
 

@@ -151,15 +151,49 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		local Byte = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
 		local Flag = RuleTable.Bit
 		local BAND = bit.band(Byte, Flag)
+		local BVal = 128
 
+		XPos = imgui.GetCursorPosX()
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		imgui.TextColored( UI.Soft, ('[') )
+
+		for i=1, 8 do
+			
+			imgui.SameLine()
+			imgui.SetCursorPosX(XPos+10+(i*10))
+			
+			if 	BVal == Flag then
+				if BAND ~= 0 then
+					imgui.TextColored( UI.Green, ('1') )
+				else
+					imgui.TextColored( UI.Red, ('0') )
+				end
+			else
+				if 0 ~= math.floor(bit.band(Byte, BVal)) then
+					imgui.TextColored( UI.Grey1, ('1') )
+				else
+					imgui.TextColored( UI.Grey1, ('0') )
+				end
+			end
+
+			BVal = math.floor(BVal / 2)
+
+		end
+
+		imgui.SameLine()
+		imgui.SetCursorPosX(XPos+100)
+		imgui.TextColored( UI.Soft, (']') )
+		imgui.SameLine()
+
+		imgui.SetCursorPosX(XPos+120)
 
 		if BAND ~= 0 then
 			PacketDisplay.Flags[RuleTable.Flag] = 1
-			imgui.TextColored( { 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+			imgui.TextColored( UI.Green, ('%s'):fmt(RuleTable.Info) )
 		else
 			PacketDisplay.Flags[RuleTable.Flag] = 0
-			imgui.TextColored( { 0.5, 0.5, 0.5, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+			imgui.TextColored( UI.Soft, ('%s'):fmt(RuleTable.Info) )
 		end
 
 		return	--	We don't want to exectute anything else ...
@@ -217,12 +251,12 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 			Brush = UI.Grey1
 		end
 
-		if nil == name then
-			name  = "Cannot Identify Entity"
+		if nil ~= name then
+
 			Brush = UI.Dirty
+			imgui.TextColored(Brush, ('%s'):fmt(name) )
+
 		end
-	
-		imgui.TextColored(Brush, ('%s'):fmt(name) )
 
 		--	NOTE .. we allow 'fall through' as we want the core to show the number
 
@@ -239,20 +273,21 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
-		if 0 == EID then
-			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('- - -') )
-		else
+		if 0 ~= EID then
 		
 			local name = AshitaCore:GetMemoryManager():GetEntity():GetName(EID)
 
-			if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-				imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(name) )
-			else
-				imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(name) )
+			--	If NIL we allow it to drop through ..
+
+			if nil ~= name then
+				if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+					imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(name) )
+				else
+					imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(name) )
+				end
 			end
-		
-		end					
-		
+		end
+
 	end
 
 	--	-----------------------------------------------------------------------
@@ -283,11 +318,31 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	end
 
 	--	-----------------------------------------------------------------------
+	--	Bit extraction
+	--	-----------------------------------------------------------------------
+
+	if 'craft' == RuleTable.Decode then
+		Decode.Craft(UI, PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+	end
+		
+	--	-----------------------------------------------------------------------
 	--	String (usually a name)
 	--	-----------------------------------------------------------------------
 
 	if 'string' == RuleTable.Decode then
 		Decode.String(PacketDisplay, RuleTable, Packet)
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Info
+	--	-----------------------------------------------------------------------
+
+	if 'info' == RuleTable.Decode then
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+		imgui.TextColored({ 1.0, 0.5, 1.0, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+
 		return
 	end
 
@@ -327,6 +382,7 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 
 	if 'byte' == RuleTable.Format then
 
+		local XPos = imgui.GetCursorPosX()
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 		local value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
@@ -336,11 +392,34 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 			imgui.SameLine()
 			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.2X)'):fmt(value) )
 		else
-			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
+			imgui.TextColored(UI.OffW, ('%d'):fmt(value) )
 			imgui.SameLine()
-			imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.2X)'):fmt(value) )
+			imgui.TextColored(UI.Dirty, ('(0x%.2X)'):fmt(value) )
 		end
 
+		--	Packet size is an odd-ball, the data is shifted...
+
+		if 'psize' == RuleTable.Decode then
+
+			local value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
+
+			value = math.floor(value / 2)
+			value = math.floor(value * 4)
+
+			--	If packet size we don't bother with flags
+			
+			imgui.SameLine()
+			imgui.SetCursorPosX(XPos+120)
+			imgui.SameLine()
+			imgui.TextColored(UI.Dirty, (' >> '):fmt(value) )
+			imgui.SameLine()
+
+			imgui.TextColored(UI.Green, ('%d'):fmt(value) )
+			imgui.SameLine()
+			imgui.TextColored(UI.Dirty, ('(0x%.2X)'):fmt(value) )
+
+		end
+		
 		Decode.CheckForTable(UI, RuleTable, value)
 
 	end
@@ -555,11 +634,10 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 		imgui.SetCursorPosY(imgui.GetCursorPosY()+20)
 
-		if imgui.BeginTable("table1", 4, ImGuiTableFlags_Borders + ImGuiTableFlags_RowBg) then
+		if imgui.BeginTable("table1", 3, ImGuiTableFlags_Borders + ImGuiTableFlags_RowBg) then
 
-			imgui.TableSetupColumn("1", ImGuiTableColumnFlags_WidthFixed, 45)
-			imgui.TableSetupColumn("2", ImGuiTableColumnFlags_WidthFixed, 30)
-			imgui.TableSetupColumn("3", ImGuiTableColumnFlags_WidthFixed, 100)
+			imgui.TableSetupColumn("1", ImGuiTableColumnFlags_WidthFixed, 50)
+			imgui.TableSetupColumn("2", ImGuiTableColumnFlags_WidthFixed, 125)
 
 			--	---------------------------------------------------------------
 			--	Execute the rules, one at a time
@@ -567,8 +645,6 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 			while RuleSize > 0 and CentralData.IDX > 0 and CentralData.IDX <= RuleSize do
 
-				--print(string.format('Line %d of %d', CentralData.IDX, RuleSize))
-			
 				RuleSize = 0
 
 				for Rule, RuleTable in pairs(CentralData.PacketRules) do
@@ -576,6 +652,10 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 				end
 					
 				RuleTable = CentralData.PacketRules[CentralData.IDX]
+
+				--	-----------------------------------------------------------
+				--	Handle commands before anything else
+				--	-----------------------------------------------------------
 
 				if ((nil ~= RuleTable.Command) and (#RuleTable.Command > 0)) then
 
@@ -595,37 +675,31 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 				else
 
+					--	-------------------------------------------------------
 					--	If we get here then it is a normal decode line
+					--	-------------------------------------------------------
 
 					imgui.TableNextRow()
 
 					imgui.TableSetColumnIndex(0)
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('0x%.3X'):fmt(RuleTable.Offset) )
-
-					imgui.TableSetColumnIndex(1)
-
-					local Bit = '-'
 					
-					if RuleTable.Bit ~= 0 or RuleTable.Decode == 'bits' then
-						Bit = string.format('%d', RuleTable.Bit)
+					if RuleTable.Offset >= 0 then
+						imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('0x%.3X'):fmt(RuleTable.Offset) )
 					end
 
-					local TextWidth = imgui.CalcTextSize(Bit)
+					imgui.TableSetColumnIndex(1)
+					
+					local TextWidth = imgui.CalcTextSize(RuleTable.String)
 					imgui.SetCursorPosX(imgui.GetCursorPosX()+((imgui.GetColumnWidth() - TextWidth)/2))
-
-					if RuleTable.Bit ~= 0 or RuleTable.Decode == 'bits' then
-						imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(Bit) )
+					
+					if RuleTable.Offset >= 0 then
+						imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
 					else
-						imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%s'):fmt(Bit) )
+						imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
 					end
 
 					imgui.TableSetColumnIndex(2)
-					local TextWidth = imgui.CalcTextSize(RuleTable.String)
-					imgui.SetCursorPosX(imgui.GetCursorPosX()+((imgui.GetColumnWidth() - TextWidth)/2))
-					imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
-					
-					imgui.TableSetColumnIndex(3)
-					
+
 					--	Now execute the rule ...
 
 					PacketDisplay.ExecuteRule(Packet, RuleTable, UI)

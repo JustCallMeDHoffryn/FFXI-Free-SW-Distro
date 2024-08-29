@@ -1075,6 +1075,7 @@ end
 
 function Decode.Bits(UI, PacketDisplay, RuleTable, Packet, value)
 
+	local	SavedIn	 = math.floor(value)
 	local	vin		 = math.floor(value)
 	local	newvalue = 0
 	local	bitvalue = 1
@@ -1136,7 +1137,7 @@ function Decode.String(PacketDisplay, RuleTable, Packet)
 
 	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
-	while 0 ~= ThisByte do
+	while 0 ~= ThisByte and index < Packet.size do
 		
 		ThisByte = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + index)
 		ThisChar = string.format('%c', ThisByte)
@@ -1149,7 +1150,51 @@ function Decode.String(PacketDisplay, RuleTable, Packet)
 
 	end
 
-	imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%c%s%c'):fmt(34, strText, 34) )
+	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%c%s%c'):fmt(34, strText, 34) )
+	else
+		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%c%s%c'):fmt(34, strText, 34) )
+	end
+
+end
+
+
+--	---------------------------------------------------------------------------
+--	This decodes the craft skill and rank
+--	This data type can be flag controlled
+--	---------------------------------------------------------------------------
+
+function Decode.Craft(UI, PacketDisplay, RuleTable, Packet, value)
+
+	local	SavedIn	 = math.floor(value)
+	local	Level	 = math.floor(value / 32)
+	local	Rank 	 = math.floor(value) % 32
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('Rank:') )
+		imgui.SameLine()
+		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(Rank) )
+		imgui.SameLine()
+
+		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('Level:') )
+		imgui.SameLine()
+		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(Level) )
+		imgui.SameLine()
+	else
+		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('Rank:') )
+		imgui.SameLine()
+		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(Rank) )
+		imgui.SameLine()
+
+		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('Level:') )
+		imgui.SameLine()
+		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(Level) )
+		imgui.SameLine()
+	end
+
+	imgui.SameLine()
 
 end
 
