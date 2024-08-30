@@ -6,4 +6,5 @@ Core code is finished, work still to do ...
 - Add a "target" window
 - Finish the manual
 
-  
+Please read the [manual]{Manual/Guide.MD} ...
+
