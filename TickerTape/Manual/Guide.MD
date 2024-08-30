@@ -19,3 +19,7 @@ When you start Ticker Tape you will see the ***Sequencer*** window ...
 ### 
 ![TT-001](TT-001.png)
 ###
+If the window does not appear you can use the command line ...
+
+/tt show
+
