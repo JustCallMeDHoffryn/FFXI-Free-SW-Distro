@@ -82,5 +82,5 @@ To capture data for offline analysis click the **Save** button at the top of the
 - **Q:** Why does it show "**No Rules**" in the Packet Viewer window?
 - **A:** I have released the code because it is in a usable state (not to say there are no bugs, there probably are). The addon has two tables of "rules" that are used to decode the packets. The packet you are looking at is not in either list. You have two options ...
 
-    - You can edit the rule table yourself, the [Programmers Guide](Prog.md) will help you.
+    - You can edit the rule table yourself, the [Programmers Guide](Prog.MD) will help you.
     - You can send me a message and I will try to add the missing rule for you.
