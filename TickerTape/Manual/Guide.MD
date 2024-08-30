@@ -25,3 +25,8 @@ If the window does not appear you can use the command line ...
 
 This is a toggle and can be used to show / hide the windows at any time without interfering with the operation of the packet capture.
 
+You will see the packets streaming from the top of the window to the bottom, and then scrolling with the newest packet at the bottom of the window ...
+### 
+![TT-002](TT-002.png)
+###
+Each line has four (4) pieces of information, A) The time (min:sec) of the packet arrival, B) The ID (in Hex) of the packet, C) The direction of travel (this example is from the client to the Server) and finally D) The type of packet.
