@@ -13,3 +13,7 @@ Because Ticker Tape relies on community information the bit patterns may or may 
 To install the addon make a copy of everything here, including the /DATA folder. It would be a good idea to copy the /MANUAL folder for future reference.
 If you want to auto-load the addon you will need to add it to the ***default.txt*** script.
 
+### First Run
+
+When you start Ticker Tape you will see the ***Sequencer*** window ...
+
