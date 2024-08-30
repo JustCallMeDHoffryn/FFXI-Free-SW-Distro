@@ -19,7 +19,7 @@ local AllRules = {
 
 [0x015] = {
 
-	[1] =   {	T{ 'call', 0xFFF }, 							},
+	[1] =   {	{ 'call', 0xFFF }, 							},
 	[2] =   {	{},  {4},  '12bytes',   'xyz',     'Position'	},
 	[3] =   {	{},  {20}, 'byte',      'dir',     'Dir'		},
 	[4] =   {	{},  {18}, 'byte',      'raw',     'Run Count'	},
@@ -32,7 +32,7 @@ local AllRules = {
 
 [0x01A] = {
 
-	[1] =   {	T{ 'call', 0xFFF }, 							   },
+	[1] =   {	{ 'call', 0xFFF }, 							   },
 	[2]   =	{	{},  {4},   'rdword',  'player', 'Target ID'	   },
 	[3]   =	{	{},  {8},   'rword',   'raw',    'Target Index'	   },
 	[4]   =	{	{},  {10},  'rword',   'action', 'Action Type'	   },
