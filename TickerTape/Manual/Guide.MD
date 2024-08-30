@@ -29,4 +29,9 @@ You will see the packets streaming from the top of the window to the bottom, and
 ### 
 ![TT-002](TT-002.png)
 ###
-Each line has four (4) pieces of information, A) The time (min:sec) of the packet arrival, B) The ID (in Hex) of the packet, C) The direction of travel (this example is from the client to the Server) and finally D) The type of packet.
+Each line has four (4) pieces of information, **A)** The time (min:sec) of the packet arrival, **B)** The ID (in Hex) of the packet, **C)** The direction of travel (this example is from the client to the Server) and finally **D)** The type of packet.
+
+The example below shows a packet travelling from the Server to the Client. The Blue / Green colour coding is a standard for FFXI packets ...
+### 
+![TT-003](TT-003.png)
+###
