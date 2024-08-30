@@ -6,5 +6,7 @@ Core code is finished, work still to do ...
 - Add a "target" window
 - Finish the manual
 
-Please take time to read the [manual](./Manual/Guide.MD) ...
+Please take time to read the [manual](./Manual/Guide.MD)
+
+Fro packet programming information please read [manual](./Manual/Prog.MD)
 
