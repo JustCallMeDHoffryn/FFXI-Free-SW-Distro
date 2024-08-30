@@ -16,4 +16,6 @@ If you want to auto-load the addon you will need to add it to the ***default.txt
 ### First Run
 
 When you start Ticker Tape you will see the ***Sequencer*** window ...
-
+### 
+![TT-001](TT-001.png)
+###
