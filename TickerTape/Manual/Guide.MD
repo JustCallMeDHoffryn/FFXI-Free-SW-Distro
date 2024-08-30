@@ -2,7 +2,7 @@
 
 ### Introduction
 
-***Ticker Tape*** is a packet capture addon for Ashita v4, it is used to capture and view packets sent between a FFXI Server and the Client program. The addon will show you the last two dozen packets as a real-time updating list. You can stop the list and select packets to view in detail.
+***Ticker Tape*** is a packet capture addon for Ashita v4, it is used to capture and view packets sent between a FFXI Server and the Client program. The addon will show you the last two dozen packets as a real-time updating list. You can pause the list at any time and select individual packets to view in detail.
 
 Ticker Tape will save packets to file for offline analysis, this is independent of the real-time packet viewing.
 
