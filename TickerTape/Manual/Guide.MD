@@ -57,6 +57,26 @@ This is especially useful in complex packets that would otherwise scroll ...
 ![TT-005](TT-005.png)
 ###
 ##
+### Filter
+
+Some packets are sent quite frequently and, as long as you are not interested in them, can clutter the Sequencer list. Fortunately there is a way to hide these unwanted packets. Click on the **Config** button, at the top right of the Sequence window. 
+
+A new window will open listing all of the packets, in two tables, Out and In ...
+### 
+![TT-007](TT-007.png)
+###
+You can deselect any packet in these lists and the packet will no longer appear in the Sequencer.
+### 
+![TT-008](TT-008.png)
+###
+
+**NOTE ...** 
+
+- The addon will remember your settings between runs.
+###
+- A packet that is disabled in this way will still be saved as part of a packet capture (see below).
+
+##
 ### Capture
 
 To capture data for offline analysis click the **Save** button at the top of the Sequence window. The name of the file will be shown in the top section of the window ...
@@ -69,18 +89,28 @@ To capture data for offline analysis click the **Save** button at the top of the
 ###
 - The addon will save files in the **/captures** folder, which it will make for you if it doesn't already exist.
 ###
+- Packets that have been disabled in the Sequencer will still be saved by this process.
+###
 - You can start / stop the packet capture using the ```/tt save``` toggle.
 ##
 ### Questions
 
-- **Q:** Why Ashita v4 and not Windower?
-- **A:** There are good quality packet capture addons for Windower and I have no desire to duplicate anyone elses work.
+**Q:** Why Ashita v4 and not Windower?
+**A:** There are good quality packet capture addons for Windower and I have no desire to duplicate anyone elses work.
 ###
-- **Q:** Why Ashita v4 and not v3?
-- **A:** If you are using Ashita you should move to v4. I know it is still classed as a Beta but it is significantly more advanced as a platform than v3. Just upgrade and be done with it.
+**Q:** Why Ashita v4 and not v3?
+**A:** If you are using Ashita you should move to v4. I know it is still classed as a Beta but it is significantly more advanced as a platform than v3. Just upgrade and be done with it.
 ###
-- **Q:** Why does it show "**No Rules**" in the Packet Viewer window?
-- **A:** I have released the code because it is in a usable state (not to say there are no bugs, there probably are). The addon has two tables of "rules" that are used to decode the packets. The packet you are looking at is not in either list. You have two options ...
+**Q:** Why does it show "**No Rules**" in the Packet Viewer window?
+**A:** I have released the code because it is in a usable state (not to say there are no bugs, there probably are). The addon has two tables of "rules" that are used to decode the packets. The packet you are looking at is not in either list (I am still adding them).
 
-    - You can edit the rule table yourself, the [Programmers Guide](Prog.MD) will help you.
-    - You can send me a message and I will try to add the missing rule for you.
+
+You have two options ...
+
+- You can edit the rule table yourself, the [Programmers Guide](Prog.MD) will help you.
+- You can send me a message and I will try to add the missing rule for you.
+##
+##
+***D'Hoffryn***
+2024
+
