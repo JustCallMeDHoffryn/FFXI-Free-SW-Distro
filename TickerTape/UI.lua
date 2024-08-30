@@ -33,6 +33,7 @@ local DataProc 				= require('DataProc')
 local PacketDisplay			= require('PacketDisplay')
 
 local ShowMain				= T{}
+local ShowConfig			= T{true, }
 
 --	---------------------------------------------------------------------------
 --	UI Variables
@@ -78,11 +79,12 @@ local UI = {
 
 	Dirty  		= T{ 0.7, 0.7, 0.7, 1.0, },
 	Soft  		= T{ 0.6, 0.6, 0.6, 1.0, },
-	Grey1  		= T{ 0.4, 0.4, 0.4, 1.0, },
+	Grey1  		= T{ 0.5, 0.5, 0.5, 1.0, },
 	OffW		= T{ 0.9, 0.9, 0.9, 1.0, },
 	Yellow 		= T{ 0.9, 0.9, 0.0, 1.0, },
 	Green		= T{ 0.0, 1.0, 0.0, 1.0, },
-	Red			= T{ 0.7, 0.0, 0.0, 1.0, },
+	Red			= T{ 0.9, 0.0, 0.0, 1.0, },
+	Brown		= T{ 0.6, 0.4, 0.2, 1.0, },
 }
 
 --	---------------------------------------------------------------------------
@@ -737,8 +739,8 @@ function UI.Render()
 	--	-----------------------------------------------------------------------
 
 	if UI.CfgActive then
-	
-		imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0, 0.25, 0.50, .75})
+
+		imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0.15, 0.20, 0.20, .8})
 		imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
 		imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
 		imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
@@ -748,12 +750,12 @@ function UI.Render()
 		imgui.PushStyleColor(ImGuiCol_FrameBg, 			{0, 0.06, .16,   1})
 		imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1})
 		imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1})
-
+		
 		imgui.SetNextWindowSize({ 744, 454, })
 		imgui.SetNextWindowSizeConstraints({ 744 , 454, }, { FLT_MAX, FLT_MAX, })
-	
-		if (imgui.Begin('Ticker Tape - Configuration', nil, ImGuiWindowFlags_NoResize)) then
-			
+
+		if (imgui.Begin('Ticker Tape - Configuration', 1, ImGuiWindowFlags_NoResize)) then
+				
 			imgui.BeginChild('InPacketPanel', { 360, 414, }, true)
 				UI.Render_OutList()
 			imgui.EndChild()

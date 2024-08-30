@@ -8,6 +8,7 @@ require('common')
 
 local chat	= require('chat')
 local imgui	= require('imgui')
+local ETC	= require('ETC')
 
 local PktDspRulesIN		= require('data/RulesIn')	--	Table of IN  display rules
 local PktDspRulesOUT	= require('data/RulesOut')	--	Table of OUT display rules
@@ -156,7 +157,7 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		XPos = imgui.GetCursorPosX()
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
-		imgui.TextColored( UI.Soft, ('[') )
+		imgui.TextColored( ETC.Dirty, ('[') )
 
 		for i=1, 8 do
 			
@@ -165,15 +166,15 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 			
 			if 	BVal == Flag then
 				if BAND ~= 0 then
-					imgui.TextColored( UI.Green, ('1') )
+					imgui.TextColored( ETC.Green, ('1') )
 				else
-					imgui.TextColored( UI.Red, ('0') )
+					imgui.TextColored( ETC.Red, ('0') )
 				end
 			else
 				if 0 ~= math.floor(bit.band(Byte, BVal)) then
-					imgui.TextColored( UI.Grey1, ('1') )
+					imgui.TextColored( ETC.Soft, ('1') )
 				else
-					imgui.TextColored( UI.Grey1, ('0') )
+					imgui.TextColored( ETC.Soft, ('0') )
 				end
 			end
 
@@ -183,17 +184,17 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 
 		imgui.SameLine()
 		imgui.SetCursorPosX(XPos+100)
-		imgui.TextColored( UI.Soft, (']') )
+		imgui.TextColored( ETC.Dirty, (']') )
 		imgui.SameLine()
 
 		imgui.SetCursorPosX(XPos+120)
 
 		if BAND ~= 0 then
 			PacketDisplay.Flags[RuleTable.Flag] = 1
-			imgui.TextColored( UI.Green, ('%s'):fmt(RuleTable.Info) )
+			imgui.TextColored( ETC.Green, ('%s'):fmt(RuleTable.Info) )
 		else
 			PacketDisplay.Flags[RuleTable.Flag] = 0
-			imgui.TextColored( UI.Soft, ('%s'):fmt(RuleTable.Info) )
+			imgui.TextColored( ETC.Soft, ('%s'):fmt(RuleTable.Info) )
 		end
 
 		return	--	We don't want to exectute anything else ...
@@ -211,7 +212,7 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(Decode.Actions[action]) )
+			imgui.TextColored(ETC.Brown, ('%s'):fmt(Decode.Actions[action]) )
 		else
 			imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(Decode.Actions[action]) )
 		end
@@ -243,17 +244,17 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		local base	= 0x1001000 + ((zone - 1) * 4096)
 		local npc	= value - base
 		local name	= AshitaCore:GetMemoryManager():GetEntity():GetName(npc)
-		local Brush = UI.Yellow
+		local Brush = ETC.Yellow
 
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			Brush = UI.Grey1
+			Brush = ETC.Brown
 		end
 
 		if nil ~= name then
 
-			Brush = UI.Dirty
+			Brush = ETC.Dirty
 			imgui.TextColored(Brush, ('%s'):fmt(name) )
 
 		end
@@ -268,20 +269,21 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	--	-----------------------------------------------------------------------
 
 	if 'eid' == RuleTable.Decode then
-					
+
 		local EID = PacketDisplay.GetValueByType(Packet, RuleTable)
-		
-		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 		if 0 ~= EID then
-		
+
 			local name = AshitaCore:GetMemoryManager():GetEntity():GetName(EID)
 
 			--	If NIL we allow it to drop through ..
 
 			if nil ~= name then
+
+				imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
 				if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-					imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%s'):fmt(name) )
+					imgui.TextColored(ETC.Brown, ('%s'):fmt(name) )
 				else
 					imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(name) )
 				end
@@ -295,7 +297,7 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	--	-----------------------------------------------------------------------
 
 	if 'job' == RuleTable.Decode then
-		Decode.JobByte(PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+		Decode.JobByte(UI, PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
 		return
 	end
 
@@ -322,7 +324,7 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	--	-----------------------------------------------------------------------
 
 	if 'craft' == RuleTable.Decode then
-		Decode.Craft(UI, PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+		Decode.Craft(PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
 	end
 		
 	--	-----------------------------------------------------------------------
@@ -330,7 +332,7 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	--	-----------------------------------------------------------------------
 
 	if 'string' == RuleTable.Decode then
-		Decode.String(PacketDisplay, RuleTable, Packet)
+		Decode.String(UI, PacketDisplay, RuleTable, Packet)
 		return
 	end
 
@@ -366,7 +368,7 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d days  %.2d:%.2d:%.2d  %d ms'):fmt(value, hour, min, sec, ms) )
+			imgui.TextColored(ETC.Brown, ('%d days  %.2d:%.2d:%.2d  %d ms'):fmt(value, hour, min, sec, ms) )
 		else
 			imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%d days  %.2d:%.2d:%.2d  %d ms'):fmt(value, hour, min, sec, ms) )
 		end
@@ -388,13 +390,13 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		local value = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
 
 		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%d'):fmt(value) )
+			imgui.TextColored(ETC.Brown, ('%d'):fmt(value) )
 			imgui.SameLine()
-			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.2X)'):fmt(value) )
+			imgui.TextColored(ETC.Brown, ('(0x%.2X)'):fmt(value) )
 		else
-			imgui.TextColored(UI.OffW, ('%d'):fmt(value) )
+			imgui.TextColored(ETC.OffW, ('%d'):fmt(value) )
 			imgui.SameLine()
-			imgui.TextColored(UI.Dirty, ('(0x%.2X)'):fmt(value) )
+			imgui.TextColored(ETC.Dirty, ('(0x%.2X)'):fmt(value) )
 		end
 
 		--	Packet size is an odd-ball, the data is shifted...
@@ -411,12 +413,12 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 			imgui.SameLine()
 			imgui.SetCursorPosX(XPos+120)
 			imgui.SameLine()
-			imgui.TextColored(UI.Dirty, (' >> '):fmt(value) )
+			imgui.TextColored(ETC.Dirty, (' >> '):fmt(value) )
 			imgui.SameLine()
 
-			imgui.TextColored(UI.Green, ('%d'):fmt(value) )
+			imgui.TextColored(ETC.Green, ('%d'):fmt(value) )
 			imgui.SameLine()
-			imgui.TextColored(UI.Dirty, ('(0x%.2X)'):fmt(value) )
+			imgui.TextColored(ETC.Dirty, ('(0x%.2X)'):fmt(value) )
 
 		end
 		
@@ -435,9 +437,9 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		local value = PacketDisplay.GetValueByType(Packet, RuleTable)
 	
 		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%d'):fmt(value) )
+			imgui.TextColored(ETC.Brown, ('%d'):fmt(value) )
 			imgui.SameLine()
-			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.4X)'):fmt(value) )
+			imgui.TextColored(ETC.Brown, ('(0x%.4X)'):fmt(value) )
 		else
 			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
 			imgui.SameLine()
@@ -459,9 +461,9 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		local value = PacketDisplay.GetValueByType(Packet, RuleTable)
 
 		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(value) )
+			imgui.TextColored(ETC.Brown, ('%d'):fmt(value) )
 			imgui.SameLine()
-			imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('  ..  0x%.8X'):fmt(value) )
+			imgui.TextColored(ETC.Brown, ('  ..  0x%.8X'):fmt(value) )
 		else
 			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
 			imgui.SameLine()
@@ -535,7 +537,7 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 	end
 	
 	imgui.SameLine()
-	imgui.SetCursorPosX(xPos+275)
+	imgui.SetCursorPosX(xPos+300)
 
 	if ((imgui.Button('<<')) and (-1 ~= UI.LineSel)) then
 		

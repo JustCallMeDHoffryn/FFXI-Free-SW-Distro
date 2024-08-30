@@ -6,6 +6,7 @@ require('common')
 
 local chat	= require('chat')
 local imgui	= require('imgui')
+local ETC	= require('ETC')
 
 local Decode = {
 
@@ -938,14 +939,14 @@ function Decode.Direction(UI, PacketDisplay, RuleTable, Packet, value)
 	
 	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
-	local Bracket = UI.Dirty
-	local AngTxt  = UI.Green
-	local Direct  = UI.OffW
+	local Bracket = ETC.Dirty
+	local AngTxt  = ETC.Green
+	local Direct  = ETC.OffW
 
 	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		Bracket = UI.Grey1
-		AngTxt  = UI.Grey1
-		Direct  = UI.Grey1
+		Bracket = ETC.Brown
+		AngTxt  = ETC.Brown
+		Direct  = ETC.Brown
 	end
 
 	imgui.TextColored(Bracket, ('[') )
@@ -975,7 +976,7 @@ function Decode.XYZ_12Bytes(Packet, PacketDisplay, RuleTable)
 	local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3)
 
 	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored( { 0.5, 0.5, 0.5, 1.0 }, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+		imgui.TextColored( ETC.Brown, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
 	else
 		imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
 	end
@@ -988,7 +989,7 @@ function Decode.XYZ_12Bytes(Packet, PacketDisplay, RuleTable)
 	local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 7)
 
 	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored( { 0.5, 0.5, 0.5, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+		imgui.TextColored( ETC.Brown, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
 	else
 		imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
 	end
@@ -1001,7 +1002,7 @@ function Decode.XYZ_12Bytes(Packet, PacketDisplay, RuleTable)
 	local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 11)
 
 	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored( { 0.5, 0.5, 0.5, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
+		imgui.TextColored( ETC.Brown, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
 	else
 		imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
 	end
@@ -1013,19 +1014,19 @@ end
 --	This data type can be flag controlled
 --	---------------------------------------------------------------------------
 
-function Decode.JobByte(PacketDisplay, RuleTable, Packet, value)
+function Decode.JobByte(UI, PacketDisplay, RuleTable, Packet, value)
 
 	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
 		
-		imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%d'):fmt(value) )
+		imgui.TextColored(ETC.Brown, ('%d'):fmt(value) )
 		imgui.SameLine()
-		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('(0x%.2X)'):fmt(value) )
+		imgui.TextColored(ETC.Brown, ('(0x%.2X)'):fmt(value) )
 
 		if value > 0 and value < 23 then
 			imgui.SameLine()
-			imgui.TextColored({ 0.5, 0.5, 0.5, 1.0 }, ('%s'):fmt(Decode.Jobs[value]) )
+			imgui.TextColored(ETC.Brown, ('%s'):fmt(Decode.Jobs[value]) )
 		end
 		
 	else
@@ -1059,7 +1060,7 @@ function Decode.CheckForTable(UI, RuleTable, value)
 			for i, ThisTable in pairs(OurTable) do
 				if i == math.floor(value) then
 					imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-					imgui.TextColored( UI.Yellow, ('%s'):fmt(ThisTable) )
+					imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
 				end
 			end
 		end
@@ -1129,7 +1130,7 @@ end
 --	This data type can be flag controlled
 --	---------------------------------------------------------------------------
 
-function Decode.String(PacketDisplay, RuleTable, Packet)
+function Decode.String(UI, PacketDisplay, RuleTable, Packet)
 
 	local 	strText		= ""
 	local	index		= 0
@@ -1151,7 +1152,7 @@ function Decode.String(PacketDisplay, RuleTable, Packet)
 	end
 
 	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%c%s%c'):fmt(34, strText, 34) )
+		imgui.TextColored(ETC.Brown, ('%c%s%c'):fmt(34, strText, 34) )
 	else
 		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%c%s%c'):fmt(34, strText, 34) )
 	end
@@ -1164,7 +1165,7 @@ end
 --	This data type can be flag controlled
 --	---------------------------------------------------------------------------
 
-function Decode.Craft(UI, PacketDisplay, RuleTable, Packet, value)
+function Decode.Craft(PacketDisplay, RuleTable, Packet, value)
 
 	local	SavedIn	 = math.floor(value)
 	local	Level	 = math.floor(value / 32)
@@ -1173,14 +1174,14 @@ function Decode.Craft(UI, PacketDisplay, RuleTable, Packet, value)
 	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
 	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('Rank:') )
+		imgui.TextColored(ETC.Brown, ('Rank:') )
 		imgui.SameLine()
-		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(Rank) )
+		imgui.TextColored(ETC.Brown, ('%d'):fmt(Rank) )
 		imgui.SameLine()
 
-		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('Level:') )
+		imgui.TextColored(ETC.Brown, ('Level:') )
 		imgui.SameLine()
-		imgui.TextColored({ 0.4, 0.4, 0.4, 1.0 }, ('%d'):fmt(Level) )
+		imgui.TextColored(ETC.Brown, ('%d'):fmt(Level) )
 		imgui.SameLine()
 	else
 		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('Rank:') )
