@@ -21,5 +21,7 @@ When you start Ticker Tape you will see the ***Sequencer*** window ...
 ###
 If the window does not appear you can use the command line ...
 
-/tt show
+```/tt show```
+
+This is a toggle and can be used to show / hide the windows at any time without interfering with the operation of the packet capture.
 
