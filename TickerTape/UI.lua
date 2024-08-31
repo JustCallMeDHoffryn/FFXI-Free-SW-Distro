@@ -60,7 +60,7 @@ local UI = {
 	
 	StackIn 	= 1,	--	Next slot for a new packet
 	StackSize	= 0,	--	How many packet are in the stack
-	WindowSize	= 24,	--	How many lines the window can show
+	WindowSize	= 32,	--	How many lines the window can show
 	
     LineSel		=  -1,
 	
@@ -388,16 +388,14 @@ end
 
 function UI.PacketViewer()
 
-	imgui.SetNextWindowSize({ 540, 605, })
-
-    imgui.SetNextWindowSizeConstraints({ 540 , 605, }, { FLT_MAX, FLT_MAX, })
+    imgui.SetNextWindowSizeConstraints({ 540 , 400, }, { 540, 960, })
 
 	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
 	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
     imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0.15, 0.20, 0.20, .8})
 
-	if (imgui.Begin('Packet Viewer', UI.ShowMain, ImGuiWindowFlags_NoResize )) then	
+	if (imgui.Begin('Packet Viewer', UI.ShowMain )) then	
 
 		--	If a line is selected, find the data and unpack it
 
@@ -430,9 +428,9 @@ end
 
 function UI.RenderSequencerCommon()
 
-	imgui.SetNextWindowSize({ 420, 605, })
+	imgui.SetNextWindowSize({ 420, 781, })
 
-    imgui.SetNextWindowSizeConstraints({ 420 , 605, }, { FLT_MAX, FLT_MAX, })
+    imgui.SetNextWindowSizeConstraints({ 420 , 781, }, { FLT_MAX, FLT_MAX, })
 
 	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})

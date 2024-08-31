@@ -114,6 +114,7 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 	--	-----------------------------------------------------------------------
 	--	Bottom of a LOOP (count, byte offset, bit offset is on the stack)
+	--	Bottom of a SWITCH
 	--	-----------------------------------------------------------------------
 
 	if 'end' == RuleTable.Command then
@@ -127,22 +128,82 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 		local	Byte	= Stack.ByteOff
 		local	Bit		= Stack.BitOff
 
-		--	Adjust the code based on the loop
+		--	-------------------------------------------------------------------
+		--	End of a loop
+		--	-------------------------------------------------------------------
 
-		while Line < CentralData.IDX do
-			
-			CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + Byte
-			CentralData.PacketRules[Line].Bit 	 = CentralData.PacketRules[Line].Bit + Bit
+		if ('loop' == CMD) then
 
-			Line = Line + 1
+			--	Adjust the code based on the loop
+
+			while Line < CentralData.IDX do
+				
+				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + Byte
+				CentralData.PacketRules[Line].Bit 	 = CentralData.PacketRules[Line].Bit + Bit
+
+				Line = Line + 1
+
+			end
+
+			Count = Count - 1
+			Stack.Count = Count
+
+			if 0 ~= Count then
+				CentralData.IDX = Stack.Line
+			else
+				CentralData.Pop()
+			end
+
+			Step	= true
+			Found	= true
 
 		end
 
-		Count = Count - 1
-		Stack.Count = Count
+		if ('switch' == CMD) then
+			--print('Found the end...')
+			CentralData.Pop()
 
-		if 0 ~= Count then
-			CentralData.IDX = Stack.Line
+			Step	= true
+			Found	= true
+		end
+
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Break
+	--	-----------------------------------------------------------------------
+
+	if Found == false and 'break' == RuleTable.Command then
+
+		local Stop = false
+
+		--print(string.format('Found BREAK .. Looking for [end]') )
+
+		while Stop == false do
+			
+			CentralData.IDX = CentralData.IDX + 1
+			local NextRule = CentralData.PacketRules[CentralData.IDX]
+
+			if nil == NextRule then
+				--print('Ran off the end...')
+				Stop = true
+			else
+
+				if nil ~= NextRule.Command then
+
+					--	Have we hit the end
+
+					if 'end' == NextRule.Command then		
+						--print('Found end...')
+						CentralData.Pop()
+						Stop = true
+						Step = true
+					end
+
+				end
+				
+			end
+		
 		end
 
 		Step	= true
@@ -169,6 +230,74 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 		Step	= true
 		Found	= true
 
+	end
+
+	--	-----------------------------------------------------------------------
+	--	TOP of a SWITCH (params pushed to stack for later)
+	--	-----------------------------------------------------------------------
+
+	if Found == false and 'switch' == RuleTable.Command then
+
+		local StackSize = CentralData.GetSize()
+		local TestValue = PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1)
+
+		CentralData.Command:append( {	Index	= (StackSize + 1),
+										CMD 	= RuleTable.Command,
+										Line	= CentralData.IDX,
+										Byte    = RuleTable.CMDOpt1,
+										Size 	= RuleTable.CMDOpt2,
+										Test    = TestValue,
+									} )
+
+		--	Look for a "case" to test or "default"
+
+		local Stop = false
+		Step = false
+
+		--print(string.format('Found Switch .. Looking for [case %d]', TestValue) )
+
+		while Stop == false do
+
+			CentralData.IDX = CentralData.IDX + 1
+			local NextRule = CentralData.PacketRules[CentralData.IDX]
+
+			if nil == NextRule then
+				--print('Ran off the end...')
+				Stop = true
+			else
+
+				if nil ~= NextRule.Command then
+
+					--	Have we hit the end
+
+					if 'end' == NextRule.Command then
+						--print('Found end...')
+						Stop = true
+						Step = true
+					end
+
+					--	Have we hit a case
+
+					if 'case' == NextRule.Command then
+
+						--print(string.format('Found case [%s, %d]', NextRule.Command, NextRule.CMDOpt1) )
+
+						if TestValue == NextRule.CMDOpt1 then
+							--print('Found match...')
+							Stop = true
+							Step = true
+						else
+							--print('No match... Keep looking')
+						end
+					end
+				end
+
+			end
+
+		end
+	
+		Found = true
+		
 	end
 
 	--	-----------------------------------------------------------------------

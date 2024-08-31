@@ -22,8 +22,26 @@ function CentralData.Push(NewCommand)
 
 end
 
+function CentralData.Pop()
+
+	local Size = CentralData.GetSize()
+
+	if 0 ~= Size then
+		CentralData.Command[Size] = nil
+		--print(string.format('Stack = %d', CentralData.GetSize()) )
+	end
+end
+
 function CentralData.GetSize()
-	return #CentralData.Command
+
+	local count = 0
+
+	for _, Stack in ipairs(CentralData.Command) do
+		count = count + 1
+	end
+
+	return count
+
 end
 
 return CentralData

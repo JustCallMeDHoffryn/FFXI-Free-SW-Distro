@@ -222,6 +222,15 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	end
 
 	--	-----------------------------------------------------------------------
+	--	Job points. We want to supress empty entries so don't drop through
+	--	-----------------------------------------------------------------------
+
+	if 'jpoint' == RuleTable.Decode then
+		Decode.JobPoints(Packet, PacketDisplay, RuleTable)
+		return
+	end
+
+	--	-----------------------------------------------------------------------
 	--	XYZ - May have more than one format, so check
 	--	-----------------------------------------------------------------------
 
@@ -231,7 +240,41 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 			return
 		end
 	end
-	
+
+	--	-----------------------------------------------------------------------
+	--	Item (by ID)
+	--	-----------------------------------------------------------------------
+
+	if 'item' == RuleTable.Decode then
+		Decode.Item(Packet, PacketDisplay, RuleTable, PacketDisplay.GetValueByType(Packet, RuleTable))
+		--	Drop through to show raw values
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Bag
+	--	-----------------------------------------------------------------------
+
+	if 'store' == RuleTable.Decode then
+		Decode.Store(Packet, PacketDisplay, RuleTable, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return		--	All on 1 line 
+	end
+
+	--	-----------------------------------------------------------------------
+	--	IP Address
+	--	-----------------------------------------------------------------------
+
+	if 'ip' == RuleTable.Decode then
+		Decode.IP(Packet, PacketDisplay, RuleTable)
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Vana'Diel Date
+	--	-----------------------------------------------------------------------
+
+	if 'vdate' == RuleTable.Decode then
+		Decode.VDate(Packet, PacketDisplay, RuleTable, PacketDisplay.GetValueByType(Packet, RuleTable))
+	end
+
 	--	-----------------------------------------------------------------------
 	--	Entity - This is a FULL ID, converted into a local index before display
 	--	-----------------------------------------------------------------------
