@@ -15,6 +15,17 @@ local AllRules = {
 
 	},	--	[[ COMPLETE ]]
 
+--	Zone Out ------------------------------------------------------------------
+
+[0x00B] = T{
+
+	[1]  =  {  { 'call', 0xFFF }, 											},
+	[2]   =	{  {},  {4},      'rdword',      'raw',  'Type',     			},
+	[3]   =	{  {},  {8},      'byte', 	     'ip',   'Address',    			},
+	[4]   =	{  {},  {12},     'rword',       'raw',  'Port',     			},
+
+	},	--[[ COMPLETE ]]
+
 --	NPC Update ----------------------------------------------------------------
 
 [0x00E] = T{
@@ -42,6 +53,28 @@ local AllRules = {
 	[19]  =	{  {},  {42},     'byte',        'raw',     'Anim Sub',   },
 	[20]  =	{  {},  {41},     'byte',        'raw',     'Allegiance', },
 	[21]  =	{  {},  {50},     'rword',       'raw',     'Model ID',   },
+
+	},	--[[ COMPLETE ]]
+
+	--	Inventory Finished ----------------------------------------------------
+
+	[0x01D] = {
+
+		[1]  =  {  { 'call', 0xFFF }, 										},
+		[2]   =	{  {},  {5},   'byte', 	     'store',	'Bag', 				},
+	
+		},	--[[ COMPLETE ]]
+	
+	--	Item Update -----------------------------------------------------------
+
+[0x020] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 											},
+	[2]   =	{  {},  {4},      'rdword',      'raw',  	'Count',     		},
+	[3]   =	{  {},  {8},      'rdword',      'raw',  	'Bazaar GIL', 		},
+	[4]   =	{  {},  {0x0C},   'rword', 	     'item', 	'Item (ID)', 		},
+	[5]   =	{  {},  {0x0E},   'byte', 	     'store',	'Bag', 				},
+	[6]   =	{  {},  {0x0F},   'byte', 	     'raw',  	'Index', 			},
 
 	},	--[[ COMPLETE ]]
 
@@ -95,6 +128,40 @@ local AllRules = {
 	[16]  =	 {  {}, {45,16},   'byte',     'bool',    'Bit Flag',	{'set', 1},  0,  'Wall Hack' 			},
 
 	},
+
+--	Job Info Extra ------------------------------------------------------------
+
+[0x044] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 											},
+	[2]  =	{  {}, {4},  'byte',   'raw',     'Packet Mode'              	},
+
+	[3]  =  {  { 'switch', 4, 1},										    },
+
+	[4]  =  {  { 'case', 16 },	     										},
+	[5]  =  {  { 'break' },          										},
+
+	[6]  =  {  { 'case', 18 },	     										},
+	[7]  =  {  { 'break' },          										},
+
+	[8]  =  {  { 'default' },	     										},
+	[9]  =  {  { 'break' },          										},
+
+	[10] =  {  { 'end' },          											},
+
+	},
+
+--	Weather Change ------------------------------------------------------------
+
+[0x057] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 											},
+	[2] =	{  {}, {-1},   'byte',   'info',    'ERROR', 		{},  0,	'This date seems to be wrong' },
+	[3]  =	{  {}, {4},   'rdword',  'vdate',   'Change Time'             },
+	[4]  =	{  {}, {8},   'rword',   'raw',     'New Weather',  {},  4    },
+	[5]  =	{  {}, {10},  'rword',   'raw',     'Transition'              },
+
+	},	--[[ COMPLETE ]]
 
 --	Lock Target ---------------------------------------------------------------
 
@@ -197,6 +264,20 @@ local AllRules = {
 	[9]  =	{  {}, {16},       'rword',    'raw',     'TP'			},
 	[10] =	{  {}, {20},       'rdword',   'entity',  'Target ID'	},
 	[11] =	{  {}, {24},       'byte',     'string',  'Pet Name'	},
+
+	},	--	[[ COMPLETE ]]
+
+--	Job Points ----------------------------------------------------------------
+
+[0x08D] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 									},
+	[2] =   {  { 'loop', 10, 4, 0 },                		        },
+	[3]  =	{  {}, {4},    'rdword',  'jpoint',  'Job Point'	    },
+	[4] =   {  { 'end' },                                   		},
+	[5] =   {  { 'loop', 10, 4, 0 },                		        },
+	[6]  =	{  {}, {0x54}, 'rdword',  'jpoint',  'Job Point'	    },
+	[7] =   {  { 'end' },                                   		},
 
 	},	--	[[ COMPLETE ]]
 

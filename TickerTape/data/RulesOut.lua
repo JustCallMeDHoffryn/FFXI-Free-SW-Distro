@@ -15,6 +15,16 @@ local AllRules = {
 
 	},	--	[[ COMPLETE ]]
 
+--	Client Leave --------------------------------------------------------------
+
+[0x00D] = {
+
+	[1] =   {	{ 'call', 0xFFF }, 							},
+	[2] =	{  {}, {-1},   'byte',   'info',    'INFO', 		{},  0,	'There is no data in this packet' },
+	[3] =	{  {}, {-1},   'byte',   'info',    'INFO', 		{},  0,	'that is used by the server' },
+
+	},	--	[[ COMPLETE ]]
+
 --	Standard Client -----------------------------------------------------------
 
 [0x015] = {
