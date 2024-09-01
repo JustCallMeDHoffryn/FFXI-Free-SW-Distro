@@ -113,56 +113,19 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 	local	Found	= false
 
 	--	-----------------------------------------------------------------------
-	--	Bottom of a LOOP (count, byte offset, bit offset is on the stack)
-	--	Bottom of a SWITCH
+	--	Bottom of a LOOP (count, byte offset, bit offset are on the stack)
 	--	-----------------------------------------------------------------------
 
 	if 'end' == RuleTable.Command then
 
-		local StackSize	= CentralData.GetSize()
-		local Stack		= CentralData.Command[StackSize]
+		local LastCommand = CentralData.GetLastStackCommand()
 
-		local	CMD		= Stack.Command
-		local	Line	= Stack.Line
-		local	Count	= Stack.Count
-		local	Byte	= Stack.ByteOff
-		local	Bit		= Stack.BitOff
+		--print(string.format('END .. Stack has %d entries (last .. %s)', CentralData.GetSize(), LastCommand))
 
-		--	-------------------------------------------------------------------
-		--	End of a loop
-		--	-------------------------------------------------------------------
+		--	End of a loop (atm we are only interested in loops)
 
-		if ('loop' == CMD) then
-
-			--	Adjust the code based on the loop
-
-			while Line < CentralData.IDX do
-				
-				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + Byte
-				CentralData.PacketRules[Line].Bit 	 = CentralData.PacketRules[Line].Bit + Bit
-
-				Line = Line + 1
-
-			end
-
-			Count = Count - 1
-			Stack.Count = Count
-
-			if 0 ~= Count then
-				CentralData.IDX = Stack.Line
-			else
-				CentralData.Pop()
-			end
-
-			Step	= true
-			Found	= true
-
-		end
-
-		if ('switch' == CMD) then
-			--print('Found the end...')
-			CentralData.Pop()
-
+		if ('loop' == LastCommand) then
+			CentralData.LoopEnd(RuleTable)
 			Step	= true
 			Found	= true
 		end
@@ -175,9 +138,10 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 	if Found == false and 'break' == RuleTable.Command then
 
-		local Stop = false
+		local Stop	= false
+		local Count = 0
 
-		--print(string.format('Found BREAK .. Looking for [end]') )
+		--print(string.format('Found BREAK .. Looking for [END 0]') )
 
 		while Stop == false do
 			
@@ -186,24 +150,34 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 			if nil == NextRule then
 				--print('Ran off the end...')
+				CentralData.Pop()
 				Stop = true
 			else
 
 				if nil ~= NextRule.Command then
 
-					--	Have we hit the end
+					--	Have we hit the / an end
 
-					if 'end' == NextRule.Command then		
-						--print('Found end...')
+					if Count == 0 and 'end' == NextRule.Command then
+						--print('Found End 0 ...')
 						CentralData.Pop()
 						Stop = true
 						Step = true
-					end
+					else
+	
+						if 'end' == NextRule.Command then
+							Count = Count - 1
+						end
 
+						--	If we find a loop we need to step over the next 'end'
+
+						if 'loop' == NextRule.Command then
+							Count = Count + 1
+						end
+
+					end
 				end
-				
 			end
-		
 		end
 
 		Step	= true
@@ -216,20 +190,9 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 	--	-----------------------------------------------------------------------
 
 	if Found == false and 'loop' == RuleTable.Command then
-
-		local StackSize = CentralData.GetSize()
-
-		CentralData.Command:append( {	Index	= (StackSize + 1),
-										CMD 	= RuleTable.Command,
-										Line	= CentralData.IDX,
-										Count   = RuleTable.CMDOpt1,
-										ByteOff = RuleTable.CMDOpt2,
-										BitOff  = RuleTable.CMDOpt3,
-									} )
-
+		CentralData.PushLoop(RuleTable)
 		Step	= true
 		Found	= true
-
 	end
 
 	--	-----------------------------------------------------------------------
@@ -241,25 +204,40 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 		local StackSize = CentralData.GetSize()
 		local TestValue = PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1)
 
-		CentralData.Command:append( {	Index	= (StackSize + 1),
-										CMD 	= RuleTable.Command,
-										Line	= CentralData.IDX,
-										Byte    = RuleTable.CMDOpt1,
-										Size 	= RuleTable.CMDOpt2,
-										Test    = TestValue,
-									} )
+		table.insert(CentralData.CmdStk, {	Index	= (StackSize + 1),
+											CMD 	= RuleTable.Command,
+											Packet	= 0,
+											Line	= CentralData.IDX,
+											Op1     = RuleTable.CMDOpt1,
+											Op2     = RuleTable.CMDOpt2,
+											Op3     = TestValue,
+											Op4  	= 0,
+											Op5  	= 0,
+											Op6  	= 0,
+											} )
+
+		table.sort(CentralData.CmdStk, (function (a, b)
+			return (a.Index < b.Index)
+			end))
+
+		--print(string.format('Found Switch .. [%d] (pushing)', TestValue) )
+			
+		--CentralData.ShowStack()
 
 		--	Look for a "case" to test or "default"
 
-		local Stop = false
-		Step = false
+		local Count = 0
+		local Stop	= false
+		Step 		= false
 
-		--print(string.format('Found Switch .. Looking for [case %d]', TestValue) )
+		--print(string.format('Looking for [case %d]', TestValue) )
 
 		while Stop == false do
 
 			CentralData.IDX = CentralData.IDX + 1
 			local NextRule = CentralData.PacketRules[CentralData.IDX]
+
+			--print(string.format('Line: %d - %s', NextRule.Index, NextRule.Command) )
 
 			if nil == NextRule then
 				--print('Ran off the end...')
@@ -268,12 +246,22 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 				if nil ~= NextRule.Command then
 
+					if 'loop' == NextRule.Command then
+						Count = Count + 1
+					end
+
 					--	Have we hit the end
 
 					if 'end' == NextRule.Command then
-						--print('Found end...')
-						Stop = true
-						Step = true
+
+						if Count == 0 then
+							--print('Found end... Going to POP now')
+							CentralData.Pop()
+							Stop = true
+							Step = true
+						else
+							Count = Count - 1
+						end
 					end
 
 					--	Have we hit a case
@@ -290,6 +278,14 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 							--print('No match... Keep looking')
 						end
 					end
+
+					--	Have we hit the default 
+
+					if 'default' == NextRule.Command then
+						Stop = true
+						Step = true
+					end
+
 				end
 
 			end
@@ -308,15 +304,17 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 		local StackSize = CentralData.GetSize()
 
+		--print(string.format('RETURN Stack has %d entries', StackSize) )
+
 		if StackSize > 0 then
 			
-			local Stack = CentralData.Command[StackSize]
+			local Stack = CentralData.CmdStk[StackSize]
 
 			--	Load the new rule set
 
 			CentralData.PacketRules = T{}
 			
-			if 1 == Stack.Dir then
+			if 1 == Stack.Op1 then
 		
 				for Group, RuleTable in pairs(PktDspRulesIN) do
 		
@@ -333,11 +331,11 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 						DataProc.DecodeRuleTable(RuleTable)
 					end
 				end
-		
+
 			end
-		
+
 			-- Sort the rules, we want them in numerical order
-		
+
 			CentralData.PacketRules:sort(function (a, b)
 				return (a.Index < b.Index)
 			end)		
@@ -349,7 +347,7 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 			--	Pop the stack
 
-			CentralData.Command[StackSize] = nil
+			CentralData.Pop()
 
 		end
 
@@ -363,59 +361,13 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 		local found = false
 
+		--print(string.format('CALL 0x%03X, Direction = %d', RuleTable.CMDOpt1, Packet.direction) )
+		
 		if PacketDisplay.VerifyPacketRule(Packet.direction, RuleTable.CMDOpt1) then
 
-			local StackSize = CentralData.GetSize()
-			local Target    = RuleTable.CMDOpt1
+			CentralData.PushCall(DataProc, RuleTable, Packet)
 
-			found = true
-
-			CentralData.Command:append( {	Index	= (StackSize + 1),
-											CMD 	= RuleTable.Command,
-											Packet  = Packet.packet,
-											Line	= CentralData.IDX,
-											Dir		= Packet.direction
-										} )
-
-
-			CentralData.Command:sort(function (a, b)
-				return (a.Index < b.Index)
-			end)		
-							
-			StackSize = CentralData.GetSize()
-
-			--	Load the new rule set
-
-			CentralData.PacketRules = T{}
-			
-			if 1 == Packet.direction then
-		
-				for Group, RuleTable in pairs(PktDspRulesIN) do
-		
-					if nil ~= RuleTable and Group == Target then
-						DataProc.DecodeRuleTable(RuleTable)
-					end
-				end
-		
-			else
-		
-				for Group, RuleTable in pairs(PktDspRulesOUT) do
-		
-					if nil ~= RuleTable and Group == Target then
-						DataProc.DecodeRuleTable(RuleTable)
-					end
-				end
-		
-			end
-		
-			-- Sort the rules, we want them in numerical order
-		
-			CentralData.PacketRules:sort(function (a, b)
-				return (a.Index < b.Index)
-			end)		
-
-			CentralData.IDX	= 1
-			
+			found	= true
 			Step	= false
 			Found	= true
 		

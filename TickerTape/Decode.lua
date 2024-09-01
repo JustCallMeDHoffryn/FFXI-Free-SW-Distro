@@ -1248,7 +1248,21 @@ local Decode = {
 					[17]  = "Stellar Glare",
 					[18]  = "Gloom",
 					[19]  = "Darkness",
-		
+
+		},
+
+	[5]	=	T{	    [1] = 'Harlequin Head',
+					[2] = 'Valoredge Head',
+					[3] = 'Sharpshot Head',
+					[4] = 'Stormwaker Head',
+					[5] = 'Soulsoother Head',
+					[6] = 'Spiritreaver Head',
+		},
+
+	[6]	=	T{	    [32] = 'Harlequin Frame',
+					[33] = 'Valoredge Frame',
+					[34] = 'Sharpshot Frame',
+					[35] = 'Stormwaker Frame',
 		},
 
 	},
@@ -1458,8 +1472,21 @@ function Decode.CheckForTable(UI, RuleTable, value)
 		if nil ~= OurTable then
 			for i, ThisTable in pairs(OurTable) do
 				if i == math.floor(value) then
-					imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-					imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
+
+					if nil ~= RuleTable.Command and '@' == RuleTable.Command then
+
+						--print(string.format('Cmd: %s, Table: %d, Off: %d', RuleTable.Command, RuleTable.TableID, RuleTable.CMDOpt1))
+						imgui.SameLine()
+						
+						local XPos = 220 + RuleTable.CMDOpt1
+						imgui.SetCursorPosX(XPos)
+						imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
+
+					else
+						--	Start of new line
+						imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+						imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
+					end
 				end
 			end
 		end

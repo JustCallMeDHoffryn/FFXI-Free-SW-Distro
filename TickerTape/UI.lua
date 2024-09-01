@@ -188,6 +188,7 @@ function UI.load()
 			View		= T{show},
 		})
 
+		--print(string.format('OUT 0x%03X .. Show %s', pkt, tostring(show)))
 		UI.settings.ShowOut[pkt] = show
 
 	end
@@ -210,6 +211,7 @@ function UI.load()
 			View		= T{show},
 		})
 
+		--print(string.format('IN 0x%03X .. Show %s', pkt, tostring(show)))
 		UI.settings.ShowIn[pkt] = show
 
 	end

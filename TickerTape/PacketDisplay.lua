@@ -392,6 +392,32 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	end
 
 	--	-----------------------------------------------------------------------
+	--	Blue Spell (add 0x200)
+	--	-----------------------------------------------------------------------
+
+	if 'bluspell' == RuleTable.Decode then
+		
+		local Spell		= PacketDisplay.GetValueByType(Packet, RuleTable) + 0x200
+		local Resource	= AshitaCore:GetResourceManager():GetSpellById(Spell)
+		local Name		= nil
+
+		if nil ~= Resource then
+			Name = Resource.Name[1]
+		end
+
+		if Spell > 512 and nil ~= Name then
+			
+			imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+			imgui.TextColored(ETC.OffW, ('%d'):fmt(Spell) )
+			imgui.SameLine()
+			imgui.TextColored(ETC.Green, ('%s'):fmt(Name) )
+
+			return
+		end
+
+	end
+
+	--	-----------------------------------------------------------------------
 	--	Time is shown as D, H, M, S and MS
 	--	-----------------------------------------------------------------------
 	
@@ -557,6 +583,10 @@ end
 
 function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
+	--	Always ZERO the stack at this point
+
+	CentralData.ZERO()
+
 	--	Allow the user to toggle raw
 	
 	if (imgui.Checkbox('Raw', PacketDisplay.ShowRaw)) then
@@ -623,8 +653,6 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 	local found = false
 
-	--print(string.format('Searching for Rules'))
-
 	CentralData.PacketRules = T{}
 
 	if 1 == Packet.direction then
@@ -659,9 +687,7 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 		CentralData.IDX = 1
 
-		for i=1, 1024 do
-			PacketDisplay.Flags[i] = 0
-		end
+		for i=1, 1024 do PacketDisplay.Flags[i] = 0 end
 
 		-- Sort the rules, we want them in numerical order
 
@@ -698,16 +724,54 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 					
 				RuleTable = CentralData.PacketRules[CentralData.IDX]
 
+				local	ThisIsCommand 	= false
+				local	ExecuteThis		= true
+
+				--	-----------------------------------------------------------
+				--	We have an outer test before we process a line
+				--	-----------------------------------------------------------
+
+				if ((nil ~= RuleTable.Command) and (#RuleTable.Command > 0)) then
+
+					if 'ifnot' == RuleTable.Command then
+						
+						local Value = PacketDisplay.GetValueByType(Packet, RuleTable)
+
+						if Value == RuleTable.CMDOpt1 then 
+							CentralData.IDX	= CentralData.IDX + 1
+							ExecuteThis		= false
+						end
+
+					elseif 'if' == RuleTable.Command then
+
+						local Value = PacketDisplay.GetValueByType(Packet, RuleTable)
+
+						if Value ~= RuleTable.CMDOpt1 then
+							CentralData.IDX	= CentralData.IDX + 1
+							ExecuteThis		= false
+						end
+
+					elseif '@' ~= RuleTable.Command then
+						
+						ThisIsCommand = true
+					
+					end
+
+				end
+
 				--	-----------------------------------------------------------
 				--	Handle commands before anything else
 				--	-----------------------------------------------------------
 
-				if ((nil ~= RuleTable.Command) and (#RuleTable.Command > 0)) then
+				if ThisIsCommand == true then
 
 					if DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet) then
 						CentralData.IDX = CentralData.IDX + 1
 					else
 
+						--	If we DON'T step we could be in a new rule, so 
+						--	rebuild what we know
+						
 						RuleSize = 0
 
 						for Rule, RuleTable in pairs(CentralData.PacketRules) do
@@ -720,37 +784,41 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 				else
 
-					--	-------------------------------------------------------
-					--	If we get here then it is a normal decode line
-					--	-------------------------------------------------------
+					if ExecuteThis == true then
 
-					imgui.TableNextRow()
+						--	-------------------------------------------------------
+						--	If we get here then it is a normal decode line
+						--	-------------------------------------------------------
 
-					imgui.TableSetColumnIndex(0)
-					
-					if RuleTable.Offset >= 0 then
-						imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('0x%.3X'):fmt(RuleTable.Offset) )
+						imgui.TableNextRow()
+
+						imgui.TableSetColumnIndex(0)
+						
+						if RuleTable.Offset >= 0 then
+							imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('0x%.3X'):fmt(RuleTable.Offset) )
+						end
+
+						imgui.TableSetColumnIndex(1)
+						
+						local TextWidth = imgui.CalcTextSize(RuleTable.String)
+						imgui.SetCursorPosX(imgui.GetCursorPosX()+((imgui.GetColumnWidth() - TextWidth)/2))
+						
+						if RuleTable.Offset >= 0 then
+							imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
+						else
+							imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
+						end
+
+						imgui.TableSetColumnIndex(2)
+
+						--	Now execute the rule ...
+
+						PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
+
+						CentralData.IDX = CentralData.IDX + 1
+						
 					end
 
-					imgui.TableSetColumnIndex(1)
-					
-					local TextWidth = imgui.CalcTextSize(RuleTable.String)
-					imgui.SetCursorPosX(imgui.GetCursorPosX()+((imgui.GetColumnWidth() - TextWidth)/2))
-					
-					if RuleTable.Offset >= 0 then
-						imgui.TextColored({ 0.9, 0.9, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
-					else
-						imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(RuleTable.String) )
-					end
-
-					imgui.TableSetColumnIndex(2)
-
-					--	Now execute the rule ...
-
-					PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
-
-					CentralData.IDX = CentralData.IDX + 1
-					
 				end
 
 			end
