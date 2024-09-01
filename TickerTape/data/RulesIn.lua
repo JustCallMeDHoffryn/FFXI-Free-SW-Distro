@@ -133,21 +133,30 @@ local AllRules = {
 
 [0x044] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2]  =	{  {}, {4},  'byte',   'raw',     'Packet Mode'              	},
+	[1]  =  {  { 'call', 0xFFF }, 												},
 
-	[3]  =  {  { 'switch', 4, 1},										    },
+	[2]  =  {  { 'switch', 4, 1},										    	},
 
-	[4]  =  {  { 'case', 16 },	     										},
-	[5]  =  {  { 'break' },          										},
+	[3]  =  {  { 'case', 16 },	     											},
+	[4]  =	{  {}, {4},  'byte',   'raw',     'Mode (BLU)'          			},
 
-	[6]  =  {  { 'case', 18 },	     										},
-	[7]  =  {  { 'break' },          										},
+	[5]  =  {  { 'loop', 20, 1, 0 },                        					},
+	[6]  =	{  { 'ifnot', 0 },  {8},  'byte',    'bluspell',    'BLU Spell'		},
+	[7]  =  {  { 'end' },                                   					},
 
-	[8]  =  {  { 'default' },	     										},
-	[9]  =  {  { 'break' },          										},
+	[8]  =  {  { 'break' },          											},
 
-	[10] =  {  { 'end' },          											},
+	[9]  =  {  { 'case', 18 },	     											},
+	[10] =	{  {}, {4},  'byte',   'raw',     'Mode (PUP)'          			},
+	[11]  =	{  { '@', 100 }, {8},  'byte',    'raw',     'Puppet Head',  {},  5 },
+	[12]  =	{  { '@', 100 }, {9},  'byte',    'raw',     'Puppet Body',  {},  6 },
+	[13] =  {  { 'break' },          											},
+
+	[14] =  {  { 'default' },	     											},
+	[15] =	{  {}, {4},  'byte',   'raw',     'Mode (Var)'	      				},
+	[16] =  {  { 'break' },          											},
+
+	[17] =  {  { 'end' },          												},
 
 	},
 
@@ -156,7 +165,7 @@ local AllRules = {
 [0x057] = {
 
 	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2] =	{  {}, {-1},   'byte',   'info',    'ERROR', 		{},  0,	'This date seems to be wrong' },
+	[2]  =	{  {}, {-1},   'byte',   'info',    'ERROR', 		{},  0,	'This date seems to be wrong' },
 	[3]  =	{  {}, {4},   'rdword',  'vdate',   'Change Time'             },
 	[4]  =	{  {}, {8},   'rword',   'raw',     'New Weather',  {},  4    },
 	[5]  =	{  {}, {10},  'rword',   'raw',     'Transition'              },
