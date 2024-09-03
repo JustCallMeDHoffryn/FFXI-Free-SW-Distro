@@ -56,16 +56,30 @@ local AllRules = {
 
 	},	--[[ COMPLETE ]]
 
-	--	Inventory Finished ----------------------------------------------------
+--	Inventory Finished ----------------------------------------------------
 
-	[0x01D] = {
+[0x01D] = {
 
 		[1]  =  {  { 'call', 0xFFF }, 										},
 		[2]   =	{  {},  {5},   'byte', 	     'store',	'Bag', 				},
 	
 		},	--[[ COMPLETE ]]
-	
-	--	Item Update -----------------------------------------------------------
+
+
+--	Item Assign ---------------------------------------------------------------
+
+[0x01F] = {
+
+	[1] =   {	{ 'call', 0xFFF }, 							   			},
+	[2] =   {	{},  {4},   	'rdword',	'raw', 		'Quantity'		},
+	[3] =   {	{},  {8},   	'rword',	'item',    	'Item (ID)'		},
+	[4] =   {   {},  {0x0A},	'byte', 	'store',	'Bag', 			},
+	[5] =   {   {},  {0x0B},	'byte',		'raw',  	'Index', 		},
+	[6] =   {   {},  {0x0C},	'byte',		'raw',  	'Flag', 		},
+
+	},	--	[[ COMPLETE ]]
+
+--	Item Update -----------------------------------------------------------
 
 [0x020] = {
 
@@ -86,8 +100,8 @@ local AllRules = {
 	[2]  =	{  {}, {4},        'byte',    'raw',     'Data Size'			},
 	[3]  =	{  {}, {5},        'rdword',  'entity',  'Actor'    			},
 	[4]  =	{  {}, {9},        'byte',    'raw',     'Target Cnt'			},
-	[5]  =	{  {}, {10,2,4},   'rword',   'bits',    'Category',   {},  1   },
-	[6]  =	{  {}, {10,6,16},  'rword',   'bits',    'Action ID',  {},  2   },
+	[5]  =	{  {}, {10,2,4},   'rdword',   'bits',    'Category',   {},  1   },
+	[6]  =	{  {}, {10,6,16},  'rdword',   'bits',    'Action ID',  {},  2   },
 
 	},	--	PART - Needs flag decode
 
@@ -150,16 +164,65 @@ local AllRules = {
 	[10] =	{  {}, {4},  'byte',   'raw',     'Mode (PUP)'          			},
 	[11]  =	{  { '@', 100 }, {8},  'byte',    'raw',     'Puppet Head',  {},  5 },
 	[12]  =	{  { '@', 100 }, {9},  'byte',    'raw',     'Puppet Body',  {},  6 },
-	[13] =  {  { 'break' },          											},
 
-	[14] =  {  { 'default' },	     											},
-	[15] =	{  {}, {4},  'byte',   'raw',     'Mode (Var)'	      				},
+	[13]  = {  { 'loop', 12, 1, 0 },                        					},
+	[14]  =	{  { 'ifnot', 0 },  {10}, 'byte', 'attach',    'Attachment'			},
+	[15]  = {  { 'end' },                                   					},
+
 	[16] =  {  { 'break' },          											},
 
-	[17] =  {  { 'end' },          												},
+	[17] =  {  { 'default' },	     											},
+	[18] =	{  {}, {4},  'byte',   'raw',     'Mode (Var)'	      				},
+	[19] =  {  { 'break' },          											},
+
+	[20] =  {  { 'end' },          												},
 
 	},
 
+--	Quest / Mission Log -------------------------------------------------------
+
+[0x056] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 													},
+
+	[2]  =  {  { 'switch', 0x24, 2},										    		},
+
+	[3]  =  {  { 'case', 0xFFFF },	     												},
+	[4]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Current Mission' },
+	[5]  =  {  { 'break' },          											},
+
+	[6]  =  {  { 'case', 0x00D0 },	     												},
+	[7]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Completed Mission' },
+	[8]  =  {  { 'break' },          											},
+
+	[9]  =  {  { 'case', 0x0080 },	     												},
+	[10]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Active ToaU/WotG Mission' },
+	[11] =  {  { 'break' },          											},
+
+	[12] =  {  { 'case', 0x00D8 },	     												},
+	[13]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Completed ToaU/WotG Mission' },
+	[14] =  {  { 'break' },          											},
+
+	[15] =  {  { 'case', 0x00C0 },	     												},
+	[16]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Completed Assault Mission' },
+	[17] =  {  { 'break' },          											},
+
+	[18] =  {  { 'case', 0x0030 },	     												},
+	[19]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Campaign - One' },
+	[20] =  {  { 'break' },          											},
+
+	[21] =  {  { 'case', 0x0038 },	     												},
+	[22]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Campaign - Two' },
+	[23] =  {  { 'break' },          											},
+
+	[24]  =  {  { 'default' },	     											},
+	[25]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'General Missions' },
+	[26]  =  {  { 'break' },          											},
+
+	[27]  =  {  { 'end' },          												},
+
+	},
+	
 --	Weather Change ------------------------------------------------------------
 
 [0x057] = {
@@ -258,6 +321,48 @@ local AllRules = {
 
 	},	--[[ COMPLETE ]]
 
+--	Job Info Extra ------------------------------------------------------------
+
+[0x067] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 													},
+
+	[2]  =  {  { 'switch', 4, 1},										    		},
+
+	[3]  =  {  { 'case', 2 },	     												},
+	[4]  =	{  {}, {4},  		'byte',   	'raw',     'Mode (Player)'          	},
+	[5]  =	{  {}, {6},  		'rword',  	'raw',     'Target ID' 	         		},
+	[6]  =	{  {}, {8},  		'rdword', 	'raw',     'Player ID' 	         		},
+	[7]  =	{  {}, {0x0c},  	'rword',  	'raw',     'Fellow ID' 	         		},
+	[8]  =	{  {}, {0x10,4},	'byte',   	'bool',    'Bit Flag',   {'set', 1},  0,  'Level Sync' 	},
+	[9]  =	{  {}, {0x26},  	'byte',   	'raw',     'Lvl Restrict' 		   		},
+	[10]  =	{  {}, {0x13}, 		'rword',  	'raw',     'Mount Sub'     				},
+	[11]  =	{  {}, {0x18}, 		'rdword', 	'raw',     'Field Choco'   	  			},
+
+	[12]  =	 { {}, {0x18,0,3},  'rdword',   'bits',    'Choco Head'				},
+	[13]  =	 { {}, {0x18,3,3},  'rdword',   'bits',    'Choco Feet'				},
+	[14]  =	 { {}, {0x18,6,3},  'rdword',   'bits',    'Choco Tail'				},
+	[15]  =	 { {}, {0x18,9,3},  'rdword',   'bits',    'Choco Colour'			},
+
+	[16]  =	{  {}, {0x27}, 		'byte', 	'raw',     'Floor Change'  	  		},
+	[17]  =  {  { 'break' },          											},
+
+	[18]  =  {  { 'case', 3 },	     											},
+	[19]  =	{  {}, {4},  'byte',   'raw',     'Mode (NPC)'          			},
+	[20]  =  {  { 'break' },          											},
+
+	[21]  =  {  { 'case', 4 },	     											},
+	[22]  =	{  {}, {4},  'byte',   'raw',     'Mode (Pet)'          			},
+	[23]  =  {  { 'break' },          											},
+
+	[24]  =  {  { 'default' },	     											},
+	[25]  =	{  {}, {4},  'byte',   'raw',     'Mode (???)'		   				},
+	[26]  =  {  { 'break' },          											},
+
+	[27]  =  {  { 'end' },          												},
+
+	},
+
 --	Pet Status ----------------------------------------------------------------
 
 [0x068] = {
@@ -287,6 +392,69 @@ local AllRules = {
 	[5] =   {  { 'loop', 10, 4, 0 },                		        },
 	[6]  =	{  {}, {0x54}, 'rdword',  'jpoint',  'Job Point'	    },
 	[7] =   {  { 'end' },                                   		},
+
+	},	--	[[ COMPLETE ]]
+
+--	Merits --------------------------------------------------------------------
+
+[0x08C] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 										},
+	[2]  =	{  {}, {0x04}, 'rword',  'raw',  'Point Count'	    		},
+	[3]  =  {  { 'loop', 31, 4, 0 },                		        	},
+	[4]  =	{  {}, {0x08}, 'rword',  'merit', 	'Merit ID'	    		},
+	[5]  =	{  { 'ifnot', 0 }, {0x0B}, 'byte',   'raw', 	'Level'	    },
+	[6]  =	{  { 'ifnot', 0 }, {0x0A}, 'byte',   'raw', 	'Next'	    },
+	[7]  =  {  { 'end' },                                   			},
+
+	},	--	[[ COMPLETE ]]
+
+--	Mount List ----------------------------------------------------------------
+
+[0x0AE] = {
+
+	[1]  =  {  { 'call', 0xFFF }, 										},
+
+	[2]  =	 { {}, {0x04,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Chocobo'		},
+	[3]  =	 { {}, {0x04,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Raptor'			},
+	[4]  =	 { {}, {0x04,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Tiger'			},
+	[5]  =	 { {}, {0x04,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Crab'			},
+	[6]  =	 { {}, {0x04,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Red Crab'		},
+	[7]  =	 { {}, {0x04,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Bomb'			},
+	[8]  =	 { {}, {0x04,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Sheep'			},
+	[9]  =	 { {}, {0x04,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Morbol'			},
+
+	[10] =	 { {}, {0x05,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Crawler'		},
+	[11] =	 { {}, {0x05,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Fenrir'			},
+	[12] =	 { {}, {0x05,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Beetle'			},
+	[13] =	 { {}, {0x05,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Moogle'			},
+	[14] =	 { {}, {0x05,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Magic Pot'		},
+	[15] =	 { {}, {0x05,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Tulfaire'		},
+	[16] =	 { {}, {0x05,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Warmachine'		},
+	[17] =	 { {}, {0x05,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Xzomit'			},
+
+	[18] =	 { {}, {0x06,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Hippogryph'		},
+	[19] =	 { {}, {0x06,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Spectral Chair'	},
+	[20] =	 { {}, {0x06,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Spheroid'		},
+	[21] =	 { {}, {0x06,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Omega'			},
+	[22] =	 { {}, {0x06,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Coeurl'			},
+	[23] =	 { {}, {0x06,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Goobbue'		},
+	[24] =	 { {}, {0x06,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Raaz'			},
+	[25] =	 { {}, {0x06,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Levitus'		},
+
+	[26] =	 { {}, {0x07,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Adamantoise'	},
+	[27] =	 { {}, {0x07,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Dhalmel'		},
+	[28] =	 { {}, {0x07,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Doll'			},
+	[29] =	 { {}, {0x07,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Golden Bomb'	},
+	[30] =	 { {}, {0x07,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Buffalo'		},
+	[31] =	 { {}, {0x07,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Wivre'			},
+	[32] =	 { {}, {0x07,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Red Raptor'		},
+	[33] =	 { {}, {0x07,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Iron Giant'		},
+
+	[34] =	 { {}, {0x08,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Byakko'			},
+	[35] =	 { {}, {0x08,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Noble Chocobo'	},
+	[36] =	 { {}, {0x08,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Ixion'			},
+	[37] =	 { {}, {0x08,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Phuabo'			},
 
 	},	--	[[ COMPLETE ]]
 
