@@ -60,7 +60,7 @@ local UI = {
 	
 	StackIn 	= 1,	--	Next slot for a new packet
 	StackSize	= 0,	--	How many packet are in the stack
-	WindowSize	= 32,	--	How many lines the window can show
+	WindowSize	= 36,	--	How many lines the window can show
 	
     LineSel		=  -1,
 	
@@ -390,7 +390,7 @@ end
 
 function UI.PacketViewer()
 
-    imgui.SetNextWindowSizeConstraints({ 540 , 400, }, { 540, 960, })
+    imgui.SetNextWindowSizeConstraints({ 540 , 400, }, { 540, 980, })
 
 	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
@@ -430,14 +430,19 @@ end
 
 function UI.RenderSequencerCommon()
 
-	imgui.SetNextWindowSize({ 420, 781, })
+	imgui.SetNextWindowSize({ 420, 869, })
 
-    imgui.SetNextWindowSizeConstraints({ 420 , 781, }, { FLT_MAX, FLT_MAX, })
+    imgui.SetNextWindowSizeConstraints({ 420 , 869, }, { FLT_MAX, FLT_MAX, })
 
-	imgui.PushStyleColor(ImGuiCol_TitleBg,  		{0, 0.05, 0.10, .7})
+	imgui.PushStyleColor(ImGuiCol_TitleBg,  {0, 0.05, 0.10, .7})
 	imgui.PushStyleColor(ImGuiCol_TitleBgActive, 	{0, 0.15, 0.25, .9})
 	imgui.PushStyleColor(ImGuiCol_TitleBgCollapsed, {0, 0.25, 0.50, .4})
-    imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0.15, 0.20, 0.20, .8})
+
+	if UI.SeqRun[1] then
+		imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0.15, 0.20, 0.20, .3})
+	else
+		imgui.PushStyleColor(ImGuiCol_WindowBg, 		{0.15, 0.20, 0.20, .8})
+	end
 
 	if (imgui.Begin('Ticker Tape - Sequence', UI.ShowMain, ImGuiWindowFlags_NoResize + ImGuiWindowFlags_NoScrollbar)) then	
 		
@@ -537,8 +542,14 @@ end
 function UI.SeqHeader(ThisSlice)
 
 	--	Time of packet
-	
-	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, UI.PacketStack[ThisSlice].now)
+
+	local Alpha = 1.0
+
+	if UI.SeqRun[1] then
+		Alpha = 0.5
+	end
+
+	imgui.TextColored({ 0.9, 0.9, 0.9, Alpha }, UI.PacketStack[ThisSlice].now)
 	imgui.SameLine()
 
 	--	Packet ID and direction

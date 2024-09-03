@@ -222,6 +222,15 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	end
 
 	--	-----------------------------------------------------------------------
+	--	Merit points. We want to supress empty entries so don't drop through
+	--	-----------------------------------------------------------------------
+
+	if 'merit' == RuleTable.Decode then
+		Decode.MeritPoints(Packet, PacketDisplay, RuleTable, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
+	end
+
+	--	-----------------------------------------------------------------------
 	--	Job points. We want to supress empty entries so don't drop through
 	--	-----------------------------------------------------------------------
 
@@ -414,6 +423,35 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 
 			return
 		end
+
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Attachment (add 0x2100 to get sub ID)
+	--	-----------------------------------------------------------------------
+
+	if 'attach' == RuleTable.Decode then
+		
+		local Item		= PacketDisplay.GetValueByType(Packet, RuleTable) + 0x2100
+		local Name		= nil
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+		if Decode.Attach[Item] ~= nil then
+
+			Name = Decode.Attach[Item]
+
+			imgui.TextColored(ETC.OffW, ('%d'):fmt(Item) )
+			imgui.SameLine()
+			imgui.TextColored(ETC.Green, ('%s'):fmt(Name) )
+
+		else
+
+			imgui.TextColored(ETC.OffW, ('%d'):fmt(Item) )
+
+		end
+
+		return
 
 	end
 

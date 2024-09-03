@@ -204,6 +204,10 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 		local StackSize = CentralData.GetSize()
 		local TestValue = PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1)
 
+		if RuleTable.CMDOpt2 == 2 then
+			TestValue = TestValue + (256 * (PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1 + 1)))
+		end
+
 		table.insert(CentralData.CmdStk, {	Index	= (StackSize + 1),
 											CMD 	= RuleTable.Command,
 											Packet	= 0,

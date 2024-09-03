@@ -12,6 +12,47 @@ local Decode = {
 
 	RuleStack	=	{},
 
+	Mounts	=	T{
+
+		[0x00]	=	'Chocobo',
+		[0x01]	=	'Raptor',
+		[0x02]	=	'Tiger',
+		[0x03]	=	'Crab',
+		[0x04]	=	'Red Crab',
+		[0x05]	=	'Bomb',
+		[0x06]	=	'Sheep',
+		[0x07]	=	'Morbol',
+		[0x08]	=	'Crawler',
+		[0x09]	=	'Fenrir',
+		[0x0A]	=	'Beetle',
+		[0x0B]	=	'Moogle',
+		[0x0C]	=	'Magic Pot',
+		[0x0D]	=	'Tulfaire',
+		[0x0E]	=	'Warmachine',
+		[0x0F]	=	'Xzomit',
+		[0x10]	=	'Hippogryph',
+		[0x11]	=	'Spectral Chair',
+		[0x12]	=	'Spheroid',
+		[0x13]	=	'Omega',
+		[0x14]	=	'Coeurl',
+		[0x15]	=	'Goobbue',
+		[0x16]	=	'Raaz',
+		[0x17]	=	'Levitus',
+		[0x18]	=	'Adamantoise',
+		[0x19]	=	'Dhalmel',
+		[0x1A]	=	'Doll',
+		[0x1B]	=	'Golden Bomb',
+		[0x1C]	=	'Buffalo',
+		[0x1D]	=	'Wivre',
+		[0x1E]	=	'Red Raptor',
+		[0x1F]	=	'Iron Giant',
+		[0x20]	=	'Byakko',
+		[0x21]	=	'Noble Chocobo',
+		[0x22]	=	'Ixion',
+		[0x23]	=	'Phuabo',
+		
+	},
+
 	Actions	=	T{		[0x00] = "Trigger",
 						[0x02] = "Attack",
 						[0x03] = "Spellcast",
@@ -60,10 +101,582 @@ local Decode = {
 				
 				},
 
+	Attach    = T{
+
+		[8449]	=	'Strobe',
+		[8450]	=	'Tension Spring',
+		[8451]	=	'Inhibitor',
+		[8452]	=	'Tension Spring II',
+		[8453]	=	'Attuner',
+		[8454]	=	'Reactive Shield',
+		[8455]	=	'Flame Holder',
+		[8456]	=	'Heat Capacitor',
+		[8457]	=	'Strobe II',
+		[8458]	=	'Tension Spring III',
+		[8459]	=	'Inhibitor II',
+		[8460]	=	'Tension Spring IV',
+		[8461]	=	'Heat Capacitor II',
+		[8462]	=	'Speedloader',
+		[8463]	=	'Speedloader II',
+		[8464]	=	'Tension Spring V',
+		[8465]	=	'Magniplug',
+		[8466]	=	'Magniplug II',
+		[8481]	=	'Mana Booster',
+		[8482]	=	'Loudspeaker',
+		[8483]	=	'Scanner',
+		[8484]	=	'Loudspeaker II',
+		[8485]	=	'Tactical Processor',
+		[8486]	=	'Tranquilizer',
+		[8487]	=	'Ice Maker',
+		[8488]	=	'Power Cooler',
+		[8489]	=	'Loudspeaker III',
+		[8490]	=	'Tranquilizer II',
+		[8491]	=	'Amplifier',
+		[8492]	=	'Loudspeaker IV',
+		[8493]	=	'Tranquilizer III',
+		[8494]	=	'Amplifier II',
+		[8495]	=	'Loudspeaker V',
+		[8496]	=	'Tranquilizer IV',
+		[8497]	=	'Arcanoclutch',
+		[8498]	=	'Arcanoclutch II',
+		[8513]	=	'Accelerator',
+		[8514]	=	'Scope',
+		[8515]	=	'Pattern Reader',
+		[8516]	=	'Accelerator II',
+		[8517]	=	'Drum Magazine',
+		[8518]	=	'Turbo Charger',
+		[8519]	=	'Replicator',
+		[8520]	=	'Barrage Turbine',
+		[8521]	=	'Turbo Charger II',
+		[8522]	=	'Accelerator III',
+		[8523]	=	'Scope II',
+		[8524]	=	'Repeater',
+		[8525]	=	'Accelerator IV',
+		[8526]	=	'Scope III',
+		[8527]	=	'Scope IV',
+		[8528]	=	'Truesights',
+		[8545]	=	'Shock Absorber',
+		[8546]	=	'Armor Plate',
+		[8547]	=	'Analyzer',
+		[8548]	=	'Armor Plate II',
+		[8549]	=	'Equalizer',
+		[8550]	=	'Schurzen',
+		[8551]	=	'Hammermill',
+		[8552]	=	'Barrier Module II',
+		[8553]	=	'Shock Absorber II',
+		[8554]	=	'Armor Plate III',
+		[8555]	=	'Barrier Module',
+		[8556]	=	'Armor Plate IV',
+		[8557]	=	'Shock Absorber III',
+		[8577]	=	'Stabilizer',
+		[8578]	=	'Volt Gun',
+		[8579]	=	'Heat Seeker',
+		[8580]	=	'Stabilizer II',
+		[8581]	=	'Target Marker',
+		[8582]	=	'Dynamo',
+		[8583]	=	'Coiler',
+		[8584]	=	'Galvanizer',
+		[8585]	=	'Stabilizer III',
+		[8586]	=	'Coiler II',
+		[8587]	=	'Dynamo II',
+		[8588]	=	'Stabilizer IV',
+		[8589]	=	'Dynamo III',
+		[8590]	=	'Stabilizer V',
+		[8609]	=	'Mana Jammer',
+		[8610]	=	'Heatsink',
+		[8611]	=	'Stealth Screen',
+		[8612]	=	'Mana Jammer II',
+		[8613]	=	'Mana Channeler',
+		[8614]	=	'Condenser',
+		[8615]	=	'Steam Jacket',
+		[8616]	=	'Percolator',
+		[8617]	=	'Mana Jammer III',
+		[8618]	=	'Stealth Screen II',
+		[8619]	=	'Resister',
+		[8620]	=	'Resister II',
+		[8621]	=	'Mana Jammer IV',
+		[8622]	=	'Mana Channeler II',
+		[8641]	=	'Auto Repair Kit',
+		[8642]	=	'Flashbulb',
+		[8643]	=	'Damage Gauge',
+		[8644]	=	'Auto Repair Kit II',
+		[8645]	=	'Eraser',
+		[8646]	=	'Optic Fiber',
+		[8648]	=	'Vivi Valve',
+		[8649]	=	'Vivi Valve II',
+		[8650]	=	'Auto Repair Kit III',
+		[8651]	=	'Arcanic Cell',
+		[8652]	=	'Arcanic Cell II',
+		[8653]	=	'Auto Repair Kit IV',
+		[8654]	=	'Optic Fiber II',
+		[8655]	=	'Damage Gauge II',
+		[8673]	=	'Mana Tank',
+		[8674]	=	'Mana Converter',
+		[8675]	=	'Mana Conserver',
+		[8676]	=	'Mana Tank II',
+		[8677]	=	'Smoke Screen',
+		[8678]	=	'Economizer',
+		[8680]	=	'Disruptor',
+		[8681]	=	'Mana Tank III',
+		[8682]	=	'Regulator',
+		[8683]	=	'Mana Tank IV',
+		
+		},
+
 	Jobs	  = T{	'WAR', 'MNK', 'WHM', 'BLM', 'RDM', 'THF', 'PLD', 'DRK', 'BST', 'BRD', 'RNG', 
 					'SAM', 'NIN', 'DRG', 'SMN', 'BLU', 'COR', 'PUP', 'DNC', 'SCH', 'GEO', 'RUN',	
 				},
 
+	Merits	= T{
+
+				--   HP
+						
+				[0x0040]	=	'Max HP',
+				[0x0042]	=	'Max MP',
+				[0x0044]	=	'Max Merit',
+					
+				--   ATTRIBUTES
+						
+				[0x0080]	=	'STR',
+				[0x0082]	=	'DEX',
+				[0x0084]	=	'VIT',
+				[0x0086]	=	'AGI',
+				[0x0088]	=	'INT',
+				[0x008A]	=	'MND',
+				[0x008C]	=	'CHR',
+					
+				--   COMBAT SKILLS
+				
+				[0x00c0]	=	'H2H',
+				[0x00c2]	=	'Dagger',
+				[0x00c4]	=	'Sword',
+				[0x00c6]	=	'Gsword',
+				[0x00c8]	=	'Axe',
+				[0x00ca]	=	'Gaxe',
+				[0x00cc]	=	'Scythe',
+				[0x00ce]	=	'Polearm',
+				[0x00d0]	=	'Katana',
+				[0x00d2]	=	'Gkatana',
+				[0x00d4]	=	'Club',
+				[0x00d6]	=	'Staff',
+				[0x00d8]	=	'Archery',
+				[0x00da]	=	'Marksmanship',
+				[0x00dc]	=	'Throwing',
+				[0x00de]	=	'Guarding',
+				[0x00e0]	=	'Evasion',
+				[0x00e2]	=	'Shield',
+				[0x00e4]	=	'Parrying',
+					
+				--   Magic Skills
+				
+				[0x0100]	=	'Divine',
+				[0x0102]	=	'Healing',
+				[0x0104]	=	'Enhancing',
+				[0x0106]	=	'Enfeebling',
+				[0x0108]	=	'Elemental',
+				[0x010a]	=	'Dark',
+				[0x010c]	=	'Summoning',
+				[0x010e]	=	'Ninjitsu',
+				[0x0110]	=	'Singing',
+				[0x0112]	=	'String',
+				[0x0114]	=	'Wind',
+				[0x0116]	=	'Blue',
+				[0x0118]	=	'Geo',
+				[0x011a]	=	'Handbell',
+					
+				--   Others
+				
+				[0x0140]	=	'Enmity Increase',
+				[0x0142]	=	'Enmity Decrease',
+				[0x0144]	=	'Crit Hit Rate',
+				[0x0146]	=	'Enemy Crit Rate',
+				[0x0148]	=	'Spell Interuption Rate',
+					
+				--   War 1
+				
+				[0x0180]	=	'Berserk Recast',
+				[0x0182]	=	'Defender Recast',
+				[0x0184]	=	'Warcry Recast',
+				[0x0186]	=	'Aggressor Recast',
+				[0x0188]	=	'Double Attack Rate',
+					
+				--   Mnk 1
+				
+				[0x01c0]	=	'Focus Recast',
+				[0x01c2]	=	'Dodge Recast',
+				[0x01c4]	=	'Chakra Recast',
+				[0x01c6]	=	'Counter Rate',
+				[0x01c8]	=	'Kick Attack Rate',
+					
+				--   Whm 1
+				
+				[0x0200]	=	'Divine Seal Recast',
+				[0x0202]	=	'Cure Cast Time',
+				[0x0204]	=	'Bar Spell Effect',
+				[0x0206]	=	'Banish Effect',
+				[0x0208]	=	'Regen Effect',
+					
+				--   Blm 1
+				
+				[0x0240]	=	'Elemental Seal Recast',
+				[0x0242]	=	'Fire Magic Potency',
+				[0x0244]	=	'Ice Magic Potency',
+				[0x0246]	=	'Wind Magic Potency',
+				[0x0248]	=	'Earth Magic Potency',
+				[0x024a]	=	'Lightning Magic Potency',
+				[0x024c]	=	'Water Magic Potency',
+					
+				--   Rdm 1
+				
+				[0x0280]	=	'Convert Recast',
+				[0x0282]	=	'Fire Magic Accuracy',
+				[0x0284]	=	'Ice Magic Accuracy',
+				[0x0286]	=	'Wind Magic Accuracy',
+				[0x0288]	=	'Earth Magic Accuracy',
+				[0x028a]	=	'Lightning Magic Accuracy',
+				[0x028c]	=	'Water Magic Accuracy',
+					
+				--   Thf 1
+				
+				[0x02c0]	=	'Flee Recast',
+				[0x02c2]	=	'Hide Recast',
+				[0x02c4]	=	'Sneak Attack Recast',
+				[0x02c6]	=	'Trick Attack Recast',
+				[0x02c8]	=	'Triple Attack Rate',
+					
+				--   Pld 1
+				
+				[0x0300]	=	'Shield Bash Recast',
+				[0x0302]	=	'Holy Circle Recast',
+				[0x0304]	=	'Sentinel Recast',
+				[0x0306]	=	'Cover Effect Length',
+				[0x0308]	=	'Rampart Recast',
+					
+				--   Drk 1
+				
+				[0x0340]	=	'Souleater Recast',
+				[0x0342]	=	'Arcane Circle Recast',
+				[0x0344]	=	'Last Resort Recast',
+				[0x0346]	=	'Last Resort Effect',
+				[0x0348]	=	'Weapon Bash Effect',
+					
+				--   Bst 1
+				
+				[0x0380]	=	'Killer Effects',
+				[0x0382]	=	'Reward Recast',
+				[0x0384]	=	'Call Beast Recast',
+				[0x0386]	=	'Sic Recast',
+				[0x0388]	=	'Tame Recast',
+					
+				--   Brd 1
+				
+				[0x03c0]	=	'Lullaby Recast',
+				[0x03c2]	=	'Finale Recast',
+				[0x03c4]	=	'Minne Effect',
+				[0x03c6]	=	'Minuet Effect',
+				[0x03c8]	=	'Madrigal Effect',
+					
+				--   Rng 1
+				
+				[0x0400]	=	'Scavenge Effect',
+				[0x0402]	=	'Camouflage Recast',
+				[0x0404]	=	'Sharpshot Recast',
+				[0x0406]	=	'Unlimited Shot Recast',
+				[0x0408]	=	'Rapid Shot Rate',
+					
+				--   Sam 1
+				
+				[0x0440]	=	'Third Eye Recast',
+				[0x0442]	=	'Warding Circle Recast',
+				[0x0444]	=	'Store TP Effect',
+				[0x0446]	=	'Meditate Recast',
+				[0x0448]	=	'Zashin Attack Rate',
+					
+				--   Nin 1
+				
+				[0x0480]	=	'Subtle Blow Effect',
+				[0x0482]	=	'Katon Effect',
+				[0x0484]	=	'Hyoton Effect',
+				[0x0486]	=	'Huton Effect',
+				[0x0488]	=	'Doton Effect',
+				[0x048a]	=	'Raiton Effect',
+				[0x048c]	=	'Suiton Effect',
+					
+				--   Drg 1
+				
+				[0x04c0]	=	'Ancient Circle Recast',
+				[0x04c2]	=	'Jump Recast',
+				[0x04c4]	=	'High Jump Recast',
+				[0x04c6]	=	'Super Jump Recast',
+				[0x04c8]	=	'Spirit Link Recast',
+					
+				--   Smn 1
+				
+				[0x0500]	=	'Avatar Physical Accuracy',
+				[0x0502]	=	'Avatar Physical Attack',
+				[0x0504]	=	'Avatar Magical Accuracy',
+				[0x0506]	=	'Avatar Magical Attack',
+				[0x0508]	=	'Summoning Magic Cast Time',
+					
+				--   Blu 1
+				
+				[0x0540]	=	'Chain Affinity Recast',
+				[0x0542]	=	'Burst Affinity Recast',
+				[0x0544]	=	'Monster Correlation',
+				[0x0546]	=	'Physical Potency',
+				[0x0548]	=	'Magical Accuracy',
+					
+				--   Cor 1
+				
+				[0x0580]	=	'Phantom Roll Recast',
+				[0x0582]	=	'Quick Draw Recast',
+				[0x0584]	=	'Quick Draw Accuracy',
+				[0x0586]	=	'Random Deal Recast',
+				[0x0588]	=	'Bust Duration',
+					
+				--   Pup 1
+				
+				[0x05c0]	=	'Automaton Skills',
+				[0x05c2]	=	'Maintenace Recast',
+				[0x05c4]	=	'Repair Effect',
+				[0x05c6]	=	'Activate Recast',
+				[0x05c8]	=	'Repair Recast',
+					
+				--   Dnc 1
+				
+				[0x0600]	=	'Step Accuracy',
+				[0x0602]	=	'Haste Samba Effect',
+				[0x0604]	=	'Reverse Flourish Effect',
+				[0x0606]	=	'Building Flourish Effect',
+					
+				--   Sch 1
+				
+				[0x0640]	=	'Grimoire Recast',
+				[0x0642]	=	'Modus Veritas Duration',
+				[0x0644]	=	'Helix Magic Acc Att',
+				[0x0646]	=	'Max Sublimation',
+					
+				--   Geo 1
+				
+				[0x06c0]	=	'Full Circle Effect',
+				[0x06c2]	=	'Ecliptic Att Recast',
+				[0x06c4]	=	'Life Cycle Recast',
+				[0x06c6]	=	'Blaze Of Glory Recast',
+				[0x06c8]	=	'Dematerialize Recast',
+					
+				--   Run 1
+				
+				[0x0700]	=	'Rune Enhance',
+				[0x0702]	=	'Vallation Effect',
+				[0x0704]	=	'Lunge Effect',
+				[0x0706]	=	'Pflug Effect',
+				[0x0708]	=	'Gambit Effect',
+					
+				--   Weapon Skills
+				
+				[0x0680]	=	'Shijin Spiral',
+				[0x0682]	=	'Exenterator',
+				[0x0684]	=	'Requiescat',
+				[0x0686]	=	'Resolution',
+				[0x0688]	=	'Ruinator',
+				[0x068a]	=	'Upheaval',
+				[0x068c]	=	'Entropy',
+				[0x068e]	=	'Stardiver',
+				[0x0690]	=	'Blade Shun',
+				[0x0692]	=	'Tachi Shoha',
+				[0x0694]	=	'Realmrazer',
+				[0x0696]	=	'Shattersoul',
+				[0x0698]	=	'Apex Arrow',
+				[0x069a]	=	'Last Stand',
+					
+				--   War 2
+				
+				[0x0800]	=	'Warriors Charge',
+				[0x0802]	=	'Tomahawk',
+				[0x0804]	=	'Savagery',
+				[0x0806]	=	'Aggressive Aim',
+					
+				--   Mnk 2
+				
+				[0x0840]	=	'Mantra',
+				[0x0842]	=	'Formless Strikes',
+				[0x0844]	=	'Invigorate',
+				[0x0846]	=	'Penance',
+					
+				--   Whm 2
+				
+				[0x0880]	=	'Martyr',
+				[0x0882]	=	'Devotion',
+				[0x0884]	=	'Protectra V',
+				[0x0886]	=	'Shellra V',
+				[0x0888]	=	'Animus Solace',
+				[0x088a]	=	'Animus Misery',
+					
+				--   Blm 2
+				
+				[0x08c0]	=	'Flare II',
+				[0x08c2]	=	'Freeze II',
+				[0x08c4]	=	'Tornado II',
+				[0x08c6]	=	'Quake II',
+				[0x08c8]	=	'Burst II',
+				[0x08ca]	=	'Flood II',
+				[0x08cc]	=	'Ancient Magic Atk Bonus',
+				[0x08ce]	=	'Ancient Magic Burst Dmg',
+				[0x08d0]	=	'Elemental Magic Accuracy',
+				[0x08d2]	=	'Elemental Debuff Duration',
+				[0x08d4]	=	'Elemental Debuff Effect',
+				[0x08d6]	=	'Aspir Absorption Amount',
+					
+				--   Rdm 2
+				
+				[0x0900]	=	'Dia III',
+				[0x0902]	=	'Slow II',
+				[0x0904]	=	'Paralyze II',
+				[0x0906]	=	'Phalanx II',
+				[0x0908]	=	'Bio III',
+				[0x090a]	=	'Blind II',
+				[0x090c]	=	'Enfeebling Magic Duration',
+				[0x090e]	=	'Magic Accuracy',
+				[0x0910]	=	'Enhancing Magic Duration',
+				[0x0912]	=	'Immunobreak Chance',
+				[0x0914]	=	'Enspell Damage',
+				[0x0916]	=	'Accuracy',
+					
+				--   Thf 2
+				
+				[0x0940]	=	'Assassins Charge',
+				[0x0942]	=	'Feint',
+				[0x0944]	=	'Aura Steal',
+				[0x0946]	=	'Ambush',
+					
+				--   Pld 2
+				
+				[0x0980]	=	'Fealty',
+				[0x0982]	=	'Chivalry',
+				[0x0984]	=	'Iron Will',
+				[0x0986]	=	'Guardian',
+					
+				--   Drk 2
+				
+				[0x09c0]	=	'Dark Seal',
+				[0x09c2]	=	'Diabolic Eye',
+				[0x09c4]	=	'Muted Soul',
+				[0x09c6]	=	'Desperate Blows',
+					
+				--   Bst 2
+				
+				[0x0a00]	=	'Feral Howl',
+				[0x0a02]	=	'Killer Instinct',
+				[0x0a04]	=	'Beast Affinity',
+				[0x0a06]	=	'Beast Healer',
+					
+				--   Brd 2
+				
+				[0x0a40]	=	'Nightingale',
+				[0x0a42]	=	'Troubadour',
+				[0x0a44]	=	'Foe Sirvente',
+				[0x0a46]	=	'Adventurers Dirge',
+				[0x0a48]	=	'Con Anima',
+				[0x0a4a]	=	'Con Brio',
+					
+				--   Rng 2
+				
+				[0x0a80]	=	'Stealth Shot',
+				[0x0a82]	=	'Flashy Shot',
+				[0x0a84]	=	'Snapshot',
+				[0x0a86]	=	'Recycle',
+					
+				--   Sam 2
+				
+				[0x0ac0]	=	'Shikikoyo',
+				[0x0ac2]	=	'Blade Bash',
+				[0x0ac4]	=	'Ikishoten',
+				[0x0ac6]	=	'Overwhelm',
+					
+				--   Nin 2
+				
+				[0x0b00]	=	'Sange',
+				[0x0b02]	=	'Ninja Tool Expertise',
+				[0x0b04]	=	'Katon San',
+				[0x0b06]	=	'Hyoton San',
+				[0x0b08]	=	'Huton San',
+				[0x0b0a]	=	'Doton San',
+				[0x0b0c]	=	'Raiton San',
+				[0x0b0e]	=	'Suiton San',
+				[0x0b10]	=	'Yonin Effect',
+				[0x0b12]	=	'Innin Effect',
+				[0x0b14]	=	'Nin Magic Accuracy',
+				[0x0b16]	=	'Nin Magic Bonus',
+					
+				--   Drg 2
+				
+				[0x0b40]	=	'Deep Breathing',
+				[0x0b42]	=	'Angon',
+				[0x0b44]	=	'Empathy',
+				[0x0b46]	=	'Strafe Effect',
+					
+				--   Smn 2
+				
+				[0x0b80]	=	'Meteor Strike',
+				[0x0b82]	=	'Heavenly Strike',
+				[0x0b84]	=	'Wind Blade',
+				[0x0b86]	=	'Geocrush',
+				[0x0b88]	=	'Thunderstorm',
+				[0x0b8a]	=	'Grandfall',
+					
+				--   Blu 2
+				
+				[0x0bc0]	=	'Convergence',
+				[0x0bc2]	=	'Diffusion',
+				[0x0bc4]	=	'Enchainment',
+				[0x0bc6]	=	'Assimilation',
+					
+				--   Cor 2
+				
+				[0x0c00]	=	'Snake Eye',
+				[0x0c02]	=	'Fold',
+				[0x0c04]	=	'Winning Streak',
+				[0x0c06]	=	'Loaded Deck',
+					
+				--   Pup 2
+				
+				[0x0c40]	=	'Role Reversal',
+				[0x0c42]	=	'Ventriloquy',
+				[0x0c44]	=	'Fine Tuning',
+				[0x0c46]	=	'Optimization',
+					
+				--   Dnc 2
+				
+				[0x0c80]	=	'Saber Dance',
+				[0x0c82]	=	'Fan Dance',
+				[0x0c84]	=	'No Foot Rise',
+				[0x0c86]	=	'Closed Position',
+					
+				--   Sch 2
+				
+				[0x0cc0]	=	'Altruism',
+				[0x0cc2]	=	'Focalization',
+				[0x0cc4]	=	'Tranquility',
+				[0x0cc6]	=	'Equanimity',
+				[0x0cc8]	=	'Enlightenment',
+				[0x0cca]	=	'Stormsurge',
+					
+				--   Geo 2
+				
+				[0x0d40]	=	'Mending Halation',
+				[0x0d42]	=	'Radial Arcana',
+				[0x0d44]	=	'Curative Recantation',
+				[0x0d46]	=	'Primeval Zeal',
+					
+				--   Run 2
+				
+				[0x0d80]	=	'Battuta',
+				[0x0d82]	=	'Rayke',
+				[0x0d84]	=	'Inspiration',
+				[0x0d86]	=	'Sleight Of Sword',
+		 
+
+	},
 
 	JobPointsEffects = T{
 
@@ -1312,6 +1925,26 @@ function Decode.Direction(UI, PacketDisplay, RuleTable, Packet, value)
 	
 end
 
+--	---------------------------------------------------------------------------
+--	Merit points
+--	---------------------------------------------------------------------------
+
+function Decode.MeritPoints(Packet, PacketDisplay, RuleTable, Value)
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	local Ability = Decode.Merits[Value]
+
+	imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, ('0x%04X'):fmt(Value) )
+	imgui.SameLine()
+	
+	if (nil ~= Ability) then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Ability) )
+	else
+		imgui.TextColored( ETC.Red, ('UNKNOWN') )
+	end
+		
+end
 
 --	---------------------------------------------------------------------------
 --	Job points
