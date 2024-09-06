@@ -280,7 +280,7 @@ By dragging the grip you can dynamically change the vertical size of the window 
 
 ![JAFA-011](JAFA-011.png)
 
-The important thing to notice is that the window has automatically added a vertical scrolll bar when the size of the content exceeds the size of the **USED** client area.
+The important thing to notice is that the window has automatically added a vertical scrolll bar when the size of the content exceeds the size of the current window boundary.
 
 You can grab the scroll to access part of client area that is no longer being shown, or you can roll the mouse wheel over the window ...
 
