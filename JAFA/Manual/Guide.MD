@@ -512,3 +512,184 @@ My resource object returned a valid object, but my output is ...
 Gives us the output we expected ...
 
 ![JAFA-022](JAFA-022.png)
+
+You will have remembered using ...
+```
+  GetTargetIndex(0)
+```
+So you will need to ne aware of when you need to use a zero as a parameter, and when to use 1 as as base offset in an array.
+##
+### Chapter Six - Children Are The Future
+
+So far, everything we have painted has been in a single window. For this chapter we will look at child windows. First I have reverted the window back to a simpler form ...
+
+![JAFA-023](JAFA-023.png)
+
+I'm going to add 8 (eight) lines and change everything ...
+```
+  imgui.BeginChild('LeftPanel', { 310, 300, }, true)
+  imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'Left Panel' )
+  imgui.EndChild()
+
+  imgui.SameLine()
+
+  imgui.BeginChild('RightPanel', { 0, 300, }, true)
+  imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'Right Panel' )
+  imgui.EndChild()
+
+  imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'The empty space, after the children ...' )
+```
+This is what we now have ...
+
+![JAFA-024](JAFA-024.png)
+
+This one picture tells us a lot. The two values in **BeginChild** define the size of the window in X and Y. The second window has a width of 0, telling imgui to use all the remaining space.
+
+You will have noticed that the two child windows are side by side on the same line. If we comment out the **SameLine** command we get this ...
+
+![JAFA-025](JAFA-025.png)
+
+The 0 parameter means that the second window occupies the whole width of the parent. Scrolling down will show the bottom of the window and anything added after ...
+
+![JAFA-026](JAFA-026.png)
+
+The width of the second child window is adjusted down to allow for the vertical scroll. The size of the outer, parent window, is not affected.
+
+Having put the SameLine command back, I have added some content to one of the windows ...
+```
+  imgui.BeginChild('LeftPanel', { 310, 300, }, true)
+  imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'Left Panel' )
+
+  for i = 1, 15 do
+      imgui.SetCursorPosX(i * 10)
+      imgui.TextColored( { 0.0, 0.9, 0.0, 1.0 }, ('Line %d'):fmt(i) )
+  end
+
+  imgui.EndChild()
+```
+![JAFA-027](JAFA-027.png)
+
+As you can see, the content is clipped to the size of the window and a scroll bar has been added to allow you to access all the content.
+
+We used **ImGuiCol_WindowBg** to set the background colour of the parent window, we can use **ImGuiCol_ChildBg** to set the child background ...
+```
+  imgui.PushStyleColor(ImGuiCol_ChildBg, {0.4, 0.4, 0.4, 0.0})
+  imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'Hello Vana\'diel (Chapter 6)' )
+
+  imgui.BeginChild('LeftPanel', { 310, 300, }, true)
+  
+      imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'Left Panel' )
+
+      for i = 1, 15 do
+          imgui.SetCursorPosX(i * 10)
+          imgui.TextColored( { 0.0, 0.9, 0.0, 1.0 }, ('Line %d'):fmt(i) )
+      end
+
+  imgui.EndChild()
+  imgui.PopStyleColor()
+```
+You may have noticed that the child windows were dark and opaque, this is the effect of the alpha setting in the child window style, but we can change that with the **ImGuiCol_ChildBg** option above, remember, once the window has completed painting we need to pop the child window style ...
+
+![JAFA-028](JAFA-028.png)
+
+The way that the alphas combine can seem complicated. For the purposes of the image below the parent window was set to 0.5 and the three child window settings were 0.25, 0.5 and 0.75 ...
+
+![JAFA-029](JAFA-029.png)
+
+The images are in the same folder as the manual if you want to examine them in greater detail. Remember, the screen is rendered with D3D and so the rules are the same for imgui as they are for the game.
+
+I can add more children, inside an existing child, as long as I do it before I use **EndChild**
+```
+  imgui.BeginChild('RightPanel', { 0, 300, }, true)
+
+      imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'Right Panel' )
+
+      imgui.PushStyleColor(ImGuiCol_ChildBg, 	{0.4, 0.4, 0.4, 0.25})
+
+      imgui.BeginChild('RightPanelA', { 140, 100, }, true)
+          imgui.TextColored( { 1.0, 0.4, 0.4, 1.0 }, 'RA' )
+      imgui.EndChild()
+
+      imgui.SameLine()
+
+      imgui.BeginChild('RightPanelB', { 0, 100, }, true)
+          imgui.TextColored( { 0.0, 1.0, 0.0, 1.0 }, 'RB' )
+      imgui.EndChild()
+
+      imgui.PopStyleColor()
+
+  imgui.EndChild()
+```
+
+![JAFA-030](JAFA-030.png)
+
+You are probably wondering how deep this rabbit hole is, and while I don't know for sure, I would imaging you could keep adding child windows until you run out of pixels.
+##
+### Chapter Seven - Putting The Children To Work
+
+So far the child windows have been mostly pointless, but there are a number of styles that can be used to great effect and this chapter will cover one of them, but there will be more later.
+
+Once more the window has been reverted as we will be adding different objects this time. The render function now contains ...
+```
+  imgui.SetNextWindowSizeConstraints({ 640 , 400, }, { 640, 400, })
+
+  if (imgui.Begin('JAFA', UIF.is_open, ImGuiWindowFlags_NoResize)) then
+
+      if imgui.BeginTable("table1", 3, ImGuiTableFlags_Borders + ImGuiTableFlags_RowBg) then
+
+          imgui.TableSetupColumn("1", ImGuiTableColumnFlags_WidthFixed, 125)
+          imgui.TableSetupColumn("2", ImGuiTableColumnFlags_WidthFixed, 125)
+
+          imgui.EndTable()
+
+      end
+
+  end
+```
+We have created a table at the current cursor position ...
+
+![JAFA-031](JAFA-031.png)
+
+Now that is probably not what you expected, but it's what you get if you create a table but don't put any data in it.
+
+**NOTE ...**
+
+- There are several ways to build a table window, I find this one the most convenient, but take a look at the imgui demo to see other ways to approach this task.
+
+I have added some data ...
+```
+  for i = 1, 9 do
+
+      imgui.TableNextRow()
+
+      imgui.TableSetColumnIndex(0)
+      imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d x 1'):fmt(i) )
+
+      imgui.TableSetColumnIndex(1)
+      imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d x 2'):fmt(i) )
+
+      imgui.TableSetColumnIndex(2)
+      imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d x 3'):fmt(i) )
+
+  end
+```
+![JAFA-032](JAFA-032.png)
+
+You will notice that, to create a new row you need to call **TableNextRow**, this will add a new row to the bottom of the table. You can select a column using **TableSetColumnIndex**
+
+The table uses alternating colours to highlight the different rows, this style can be changed, just like most things.
+
+If the table grows beyond the size of the window a scroll bar is added to the window ...
+
+![JAFA-033](JAFA-033.png)
+
+You could put the table inside a child window ...
+
+![JAFA-034](JAFA-034.png)
+
+There are options that will remove the border, how it ends up looking is very much your choice.
+##
+### Chapter Eight - Widgets
+
+Before we go any further you need to know about widgets. There are a few that can significantly change the look and functionality of your interface. Once again JAFA is being reset to a basic empty window.
+
