@@ -6,9 +6,7 @@ require('common')
 
 local chat = require('chat')
 
-local CentralData		= require('CentralData')
-local PktDspRulesIN		= require('data/RulesIn')	--	Table of IN  display rules
-local PktDspRulesOUT	= require('data/RulesOut')	--	Table of OUT display rules
+local CentralData = require('CentralData')
 
 local DataProc = {
 
@@ -317,23 +315,31 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 			--	Load the new rule set
 
 			CentralData.PacketRules = T{}
-			
+
 			if 1 == Stack.Op1 then
-		
-				for Group, RuleTable in pairs(PktDspRulesIN) do
-		
-					if nil ~= RuleTable and Group == Stack.Packet then
-						DataProc.DecodeRuleTable(RuleTable)
+
+				if nil ~= CentralData.PktDspRulesIN then
+
+					for Group, RuleTable in pairs(CentralData.PktDspRulesIN) do
+
+						if nil ~= RuleTable and Group == Stack.Packet then
+							DataProc.DecodeRuleTable(RuleTable)
+						end
 					end
+
 				end
-		
+
 			else
-		
-				for Group, RuleTable in pairs(PktDspRulesOUT) do
-		
-					if nil ~= RuleTable and Group == Stack.Packet then
-						DataProc.DecodeRuleTable(RuleTable)
+
+				if nil ~= CentralData.PktDspRulesOUT then
+
+					for Group, RuleTable in pairs(CentralData.PktDspRulesOUT) do
+
+						if nil ~= RuleTable and Group == Stack.Packet then
+							DataProc.DecodeRuleTable(RuleTable)
+						end
 					end
+
 				end
 
 			end

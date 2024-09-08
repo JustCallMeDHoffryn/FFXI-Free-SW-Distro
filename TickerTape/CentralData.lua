@@ -7,10 +7,10 @@ require('common')
 local chat	= require('chat')
 local imgui	= require('imgui')
 
-local PktDspRulesIN		= require('data/RulesIn')	--	Table of IN  display rules
-local PktDspRulesOUT	= require('data/RulesOut')	--	Table of OUT display rules
-
 local CentralData = {
+
+	PktDspRulesIN	= require('data/RulesIn'),	--	Table of IN  display rules
+	PktDspRulesOUT	= require('data/RulesOut'),	--	Table of OUT display rules
 
 	PacketRules	=	T{},
 	CmdStk		=	{},
@@ -25,7 +25,7 @@ local CentralData = {
 function CentralData.ZERO()
 
 	local	Entries = CentralData.GetSize()
-	
+
 	while 0 ~= Entries do
 
 		CentralData.CmdStk[Entries] = nil
@@ -173,20 +173,28 @@ function CentralData.PushCall(DataProc, RuleTable, Packet)
 
 	if 1 == Packet.direction then
 
-		for Group, Rule in pairs(PktDspRulesIN) do
+		if nil ~= CentralData.PktDspRulesIN then
 
-			if nil ~= Rule and Group == Target then
-				DataProc.DecodeRuleTable(Rule)
+			for Group, Rule in pairs(CentralData.PktDspRulesIN) do
+
+				if nil ~= Rule and Group == Target then
+					DataProc.DecodeRuleTable(Rule)
+				end
 			end
+
 		end
 
 	else
 
-		for Group, Rule in pairs(PktDspRulesOUT) do
+		if nil ~= CentralData.PktDspRulesOUT then
 
-			if nil ~= Rule and Group == Target then
-				DataProc.DecodeRuleTable(Rule)
+			for Group, Rule in pairs(CentralData.PktDspRulesOUT) do
+
+				if nil ~= Rule and Group == Target then
+					DataProc.DecodeRuleTable(Rule)
+				end
 			end
+
 		end
 
 	end
@@ -215,8 +223,21 @@ function CentralData.LoopEnd(RuleTable)
 
 	while Line < CentralData.IDX do
 		
-		CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + Stack.Op2
-		CentralData.PacketRules[Line].Bit    = CentralData.PacketRules[Line].Bit    + Stack.Op3
+		if -1 == Stack.Op2 then		--	Increment by the size of the data type
+		
+			if 'word' == CentralData.PacketRules[Line].Format or 'rword' == CentralData.PacketRules[Line].Format then
+				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + 2
+			elseif 'dword' == CentralData.PacketRules[Line].Format or 'rdword' == CentralData.PacketRules[Line].Format then
+				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + 4
+			else
+				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + 1
+			end
+
+		else
+			CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + Stack.Op2
+		end
+	
+		CentralData.PacketRules[Line].Bit = CentralData.PacketRules[Line].Bit + Stack.Op3
 
 		Line = Line + 1
 
@@ -239,6 +260,28 @@ function CentralData.LoopEnd(RuleTable)
 		CentralData.Pop()
 
 	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Reload the rules
+--	---------------------------------------------------------------------------
+
+function CentralData.ReloadOUT(UI)
+
+	local path = UI.GetScriptPath() .. 'data\\RulesOut.lua'
+
+	CentralData.PktDspRulesOUT = nil
+	CentralData.PktDspRulesOUT = dofile(path)
+
+end
+
+function CentralData.ReloadIN(UI)
+
+	local path = UI.GetScriptPath() .. 'data/RulesIn.lua'
+
+	CentralData.PktDspRulesIN = nil
+	CentralData.PktDspRulesIN = dofile(path)
 
 end
 

@@ -12,47 +12,6 @@ local Decode = {
 
 	RuleStack	=	{},
 
-	Mounts	=	T{
-
-		[0x00]	=	'Chocobo',
-		[0x01]	=	'Raptor',
-		[0x02]	=	'Tiger',
-		[0x03]	=	'Crab',
-		[0x04]	=	'Red Crab',
-		[0x05]	=	'Bomb',
-		[0x06]	=	'Sheep',
-		[0x07]	=	'Morbol',
-		[0x08]	=	'Crawler',
-		[0x09]	=	'Fenrir',
-		[0x0A]	=	'Beetle',
-		[0x0B]	=	'Moogle',
-		[0x0C]	=	'Magic Pot',
-		[0x0D]	=	'Tulfaire',
-		[0x0E]	=	'Warmachine',
-		[0x0F]	=	'Xzomit',
-		[0x10]	=	'Hippogryph',
-		[0x11]	=	'Spectral Chair',
-		[0x12]	=	'Spheroid',
-		[0x13]	=	'Omega',
-		[0x14]	=	'Coeurl',
-		[0x15]	=	'Goobbue',
-		[0x16]	=	'Raaz',
-		[0x17]	=	'Levitus',
-		[0x18]	=	'Adamantoise',
-		[0x19]	=	'Dhalmel',
-		[0x1A]	=	'Doll',
-		[0x1B]	=	'Golden Bomb',
-		[0x1C]	=	'Buffalo',
-		[0x1D]	=	'Wivre',
-		[0x1E]	=	'Red Raptor',
-		[0x1F]	=	'Iron Giant',
-		[0x20]	=	'Byakko',
-		[0x21]	=	'Noble Chocobo',
-		[0x22]	=	'Ixion',
-		[0x23]	=	'Phuabo',
-		
-	},
-
 	Actions	=	T{		[0x00] = "Trigger",
 						[0x02] = "Attack",
 						[0x03] = "Spellcast",
@@ -1878,6 +1837,252 @@ local Decode = {
 					[35] = 'Stormwaker Frame',
 		},
 
+
+	[7] =	T{
+
+			[0x00]	=	'Chocobo',
+			[0x01]	=	'Raptor',
+			[0x02]	=	'Tiger',
+			[0x03]	=	'Crab',
+			[0x04]	=	'Red Crab',
+			[0x05]	=	'Bomb',
+			[0x06]	=	'Sheep',
+			[0x07]	=	'Morbol',
+			[0x08]	=	'Crawler',
+			[0x09]	=	'Fenrir',
+			[0x0A]	=	'Beetle',
+			[0x0B]	=	'Moogle',
+			[0x0C]	=	'Magic Pot',
+			[0x0D]	=	'Tulfaire',
+			[0x0E]	=	'Warmachine',
+			[0x0F]	=	'Xzomit',
+			[0x10]	=	'Hippogryph',
+			[0x11]	=	'Spectral Chair',
+			[0x12]	=	'Spheroid',
+			[0x13]	=	'Omega',
+			[0x14]	=	'Coeurl',
+			[0x15]	=	'Goobbue',
+			[0x16]	=	'Raaz',
+			[0x17]	=	'Levitus',
+			[0x18]	=	'Adamantoise',
+			[0x19]	=	'Dhalmel',
+			[0x1A]	=	'Doll',
+			[0x1B]	=	'Golden Bomb',
+			[0x1C]	=	'Buffalo',
+			[0x1D]	=	'Wivre',
+			[0x1E]	=	'Red Raptor',
+			[0x1F]	=	'Iron Giant',
+			[0x20]	=	'Byakko',
+			[0x21]	=	'Noble Chocobo',
+			[0x22]	=	'Ixion',
+			[0x23]	=	'Phuabo',
+			
+		},
+	
+		[8] = T{
+
+			[40] = 'Cloister of Time and Souls',
+			[41] = 'Royal Wanderlust',
+			[42] = 'Snowdrift Waltz',
+			[43] = 'Troubled Shadows',
+			[44] = 'Where Lords Rule Not',
+			[45] = 'Summers Lost',
+			[46] = 'Goddess Divine',
+			[47] = 'Echoes of Creation',
+			[48] = 'Main Theme',
+			[49] = 'Luck of the Mog',
+			[50] = 'Feast of the Ladies',
+			[51] = 'Scarlet Skies',
+			[52] = 'Melodies Errant',
+			[53] = 'Shinryu',
+			[54] = 'Everlasting Bonds',
+			[55] = 'Provenance Watcher',
+			[56] = 'Where it All Begins',
+			[57] = 'Steel Sings',
+			[58] = 'A New Direction',
+			[59] = 'The Pioneers',
+			[60] = 'Into Lands Primeval',
+			[61] = 'Waters Umbral Knell',
+			[62] = 'Keepers of the Wild',
+			[63] = 'The Sacred City of Adoulin',
+			[64] = 'Breaking Ground',
+			[65] = 'Hades',
+			[66] = 'Arciela',
+			[67] = 'Mog Resort',
+			[68] = 'Worlds Away',
+			[69] = 'Unknown',
+			[70] = 'Monstrosity',
+			[71] = 'The Pioneers (Piano)',
+			[72] = 'The Divine',
+			[73] = 'The Serpentine Labyrinth',
+			[74] = 'Clouds Over Ulbuka',
+			[75] = 'The Price',
+			[76] = 'Forever Today',
+			[77] = 'Unused ID',
+			[78] = 'Forever Today (EP. Ver - Instrumental)',
+			[79] = 'Unknown',
+			[80] = 'Unknown',
+			[81] = 'Isle of the Gods',
+			[82] = 'Wail of the Void',
+			[83] = 'Rhapsodies of Vanadiel',
+			[84] = 'Unknown name',
+			[101] = 'Battle Theme',
+			[102] = 'Battle in the Dungeon #2',
+			[103] = 'Battle Theme #2',
+			[104] = 'A Road Once Travelled',
+			[105] = 'Mhaura',
+			[106] = 'Voyager',
+			[107] = 'The Kingdom of SandOria',
+			[108] = 'Vandiel March',
+			[109] = 'Ronfaure',
+			[110] = 'The Grand Duchy of Jeuno',
+			[111] = 'Blackout',
+			[112] = 'Selbina',
+			[113] = 'Sarutabaruta',
+			[114] = 'Batallia',
+			[115] = 'Battle in the Dungeon',
+			[116] = 'Gustaberg',
+			[117] = 'ReLude Gardens',
+			[118] = 'Rolanberry Fields',
+			[119] = 'Awakening',
+			[120] = 'Vanadiel March #2',
+			[121] = 'Shadow Lord',
+			[122] = 'One Last Time',
+			[123] = 'Hopelessness',
+			[124] = 'Recollection',
+			[125] = 'Tough Battle',
+			[126] = 'Mog House',
+			[127] = 'Anxiety',
+			[128] = 'Airship',
+			[129] = 'Hook',
+			[130] = 'Tarutaru Female',
+			[131] = 'Elvaan Female',
+			[132] = 'Elvaan Male',
+			[133] = 'Hume Male',
+			[134] = 'Yuhtunga Jungle',
+			[135] = 'Kazham',
+			[136] = 'The Big One',
+			[137] = 'A Realm of Emptiness',
+			[138] = 'Mercenaries Delight',
+			[139] = 'Delve',
+			[140] = 'Wings of the Goddess',
+			[141] = 'The Cosmic Wheel',
+			[142] = 'Fated Strife',
+			[143] = 'Hellriders',
+			[144] = 'Rapid Onslaught',
+			[145] = 'Encampment Dreams',
+			[146] = 'The Colosseum',
+			[147] = 'Eastward Bound',
+			[148] = 'Forbidden Seal',
+			[149] = 'Jeweled Boughs',
+			[150] = 'Ululations from Beyond',
+			[151] = 'The Federation of Windurst',
+			[152] = 'The Republic of Bastok',
+			[153] = 'Prelude',
+			[154] = 'Metalworks',
+			[155] = 'Castle Zvahl',
+			[156] = 'Chateau dOraguille',
+			[157] = 'Fury',
+			[158] = 'Sauromugue Champaign',
+			[159] = 'Sorrow',
+			[160] = 'Repression (Memoro)',
+			[161] = 'Despair (Memoro)',
+			[162] = 'Heavens Tower',
+			[163] = 'Sometime',
+			[164] = 'Xarcabard',
+			[165] = 'Galka',
+			[166] = 'Mithra',
+			[167] = 'Tarutaru Male',
+			[168] = 'Tarutaru Female',
+			[169] = 'Regeneracy',
+			[170] = 'Buccaneers',
+			[171] = 'Altepa Desert',
+			[172] = 'Black Coffin',
+			[173] = 'Illusions in the Mist',
+			[174] = 'Whispers of the Gods',
+			[175] = 'Bandits Market',
+			[176] = 'Circuit de Chocobo',
+			[177] = 'Run Chocobo',
+			[178] = 'Bustle of the Capital',
+			[179] = 'Vanadiel March #4',
+			[180] = 'Thunder of the March',
+			[181] = 'Unknown',
+			[182] = 'Stargazing',
+			[183] = 'A Puppets Slumber',
+			[184] = 'Eternal Gravestone',
+			[185] = 'Ever-turning Wheels',
+			[186] = 'Iron Colossus',
+			[187] = 'Ragnarok',
+			[188] = 'Choc-a-bye Baby',
+			[189] = 'An Invisible Crown',
+			[190] = 'The Sanctuary of ZiTah',
+			[191] = 'Battle Theme #3',
+			[192] = 'Battle in the Dungeon #3',
+			[193] = 'Tough Battle #2',
+			[194] = 'Bloody Promises',
+			[195] = 'Belief',
+			[196] = 'Fighters of the Crystal',
+			[197] = 'To the Heavens',
+			[198] = 'Ealdnarche',
+			[199] = 'Graviton',
+			[200] = 'Hidden Truths',
+			[201] = 'End Theme',
+			[202] = 'Moongate (Memoro)',
+			[203] = 'Unknown',
+			[204] = 'Unknown',
+			[205] = 'Unknown',
+			[206] = 'Unknown',
+			[207] = 'VeLugannon Palace',
+			[208] = 'Rabao',
+			[209] = 'Norg',
+			[210] = 'RuAun Gardens',
+			[211] = 'RoMaeve',
+			[212] = 'Dash de Chocobo',
+			[213] = 'Hall of the Gods',
+			[214] = 'Eternal Oath',
+			[215] = 'Clash of Standards',
+			[216] = 'On This Blade',
+			[217] = 'Kindred Cry',
+			[218] = 'Depths of the Soul',
+			[219] = 'Onslaught',
+			[220] = 'Turmoil',
+			[221] = 'Moblin Menagerie',
+			[222] = 'Faded Memories',
+			[223] = 'March of the Hero',
+			[224] = 'Dusk and Dawn',
+			[225] = 'Words Unspoken',
+			[226] = 'You Want to Live Forever',
+			[227] = 'Sunbreeze Shuffle',
+			[228] = 'Gates of Paradise',
+			[229] = 'Currents of Time',
+			[230] = 'A New Horizon',
+			[231] = 'Celestial Thunder',
+			[232] = 'The Ruler of the Skies',
+			[233] = 'The Celestial Capital',
+			[234] = 'Happily Ever After',
+			[235] = 'Nocturne of the Gods',
+			[236] = 'Clouded Dawn',
+			[237] = 'Memoria de la Stona',
+			[238] = 'A New Morning',
+			[239] = 'Starlight Celebration',
+			[240] = 'Distant Promises',
+			[241] = 'A Time for Prayer',
+			[242] = 'Unity',
+			[243] = 'Unknown',
+			[244] = 'Unknown',
+			[245] = 'The Forgotten City',
+			[246] = 'March of the Allied Forces',
+			[247] = 'Roar of the Battle Drums',
+			[248] = 'Young Griffons in Flight',
+			[249] = 'Run maggot',
+			[250] = 'Under a Clouded Moon',
+			[251] = 'Autumn Footfalls',
+			[252] = 'Flowers on the Battlefield',
+			[253] = 'Echoes of a Zephyr',
+			[254] = 'Griffons Never Die',
+			
+		},
+
 	},
 }
 
@@ -2371,6 +2576,170 @@ function Decode.Craft(PacketDisplay, RuleTable, Packet, value)
 	end
 
 	imgui.SameLine()
+
+end
+
+--	---------------------------------------------------------------------------
+--	This converts a string into a table of words
+--	---------------------------------------------------------------------------
+
+function Decode.BuildWordList(Status, Words)
+
+	local count		= 0
+	local offset	= 1
+	local index		= 0
+
+	repeat
+
+		index = string.find(Status, ' ', offset)
+
+		if nil ~= index then
+
+			part = ''
+
+			for i=offset, (index - 1) do
+				part = part .. Status[i]
+			end
+
+			count  = count + 1
+
+			table.insert( Words , { index = count,
+									text = part } )
+
+			offset = index + 1
+
+		end
+
+	until nil == index
+
+	--	We now have the last word to add
+
+	part = ''
+
+	repeat
+
+		part = part .. Status[offset]
+		offset = offset + 1
+
+	until offset > string.len(Status)
+
+	table.insert( Words , { index = count + 1,
+							text = part } )
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a status effect
+--	---------------------------------------------------------------------------
+
+function Decode.Status(PacketDisplay, RuleTable, Packet, value)
+
+	local resource = AshitaCore:GetResourceManager():GetStatusIconById(value)
+
+	if nil ~= resource then
+	
+		local Status = resource.Description[1]
+
+		if imgui.CalcTextSize(Status) < 300 then
+
+			imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Status) )
+
+		else
+
+			--	Build a list of spaces
+
+			local Used  = 0
+			local Words = {}
+			Decode.BuildWordList(Status, Words)
+
+			local Try1 = ''
+			local Try2 = ''
+
+			repeat
+				
+				Try1 = Try2
+				Try2 = Try2 .. ' ' .. Words[Used+1].text
+
+				if imgui.CalcTextSize(Try2) > 300 then
+					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try1) )
+					Try1 = Words[Used+1].text
+					Try2 = Words[Used+1].text
+					imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+				end
+
+				Used = Used + 1
+
+			until Used == #Words
+
+			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try2) )
+
+		end
+
+	else
+
+		--	We have no idea
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+		imgui.TextColored(ETC.Red, ('UNKNOWN') )
+
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a song name
+--	---------------------------------------------------------------------------
+
+function Decode.Music(PacketDisplay, RuleTable, Packet, value)
+
+	local OurTable	= Decode.Tables[8]		--	Table of music
+	local Name		= 'Unknown'
+	
+	if nil ~= OurTable then
+		for i, ThisTable in pairs(OurTable) do
+			if i == math.floor(value) then
+				Name = ThisTable
+			end
+		end
+	end
+
+	if imgui.CalcTextSize(Name) < 300 then
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Name) )
+
+	else
+
+		--	Build a list of spaces
+
+		local Used  = 0
+		local Words = {}
+		
+		Decode.BuildWordList(Name, Words)
+
+		local Try1 = ''
+		local Try2 = ''
+
+		repeat
+			
+			Try1 = Try2
+			Try2 = Try2 .. ' ' .. Words[Used+1].text
+
+			if imgui.CalcTextSize(Try2) > 300 then
+				imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try1) )
+				Try1 = Words[Used+1].text
+				Try2 = Words[Used+1].text
+				imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+			end
+
+			Used = Used + 1
+
+		until Used == #Words
+
+		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try2) )
+
+	end
 
 end
 

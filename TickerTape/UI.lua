@@ -25,6 +25,7 @@ local chat			= require('chat')
 local imgui			= require('imgui')
 local settings 		= require('settings')
 local MiniFiles		= require('MiniFiles')
+local CentralData	= require('CentralData')
 
 local PacketsClientOUT		= require('data/PacketsA')	--	Table of packets OUT from the client TO the server
 local PacketsClientIN		= require('data/PacketsB')	--	Table of packets IN to the client FROM the server
@@ -151,6 +152,63 @@ end
 
 settings.register('settings', 'settings_update', UpdateSettings)
 
+function UI.LoadInRules()
+
+	UI.PacketsIN = T{}
+
+	for pkt, Rule in pairs(PacketsClientIN) do
+
+		local show = UI.settings.ShowIn[pkt]
+
+		if nil == show then
+			show = true
+		end
+
+		UI.PacketsIN:append(T{
+			Index   	= pkt,
+			Name		= Rule[1],
+			View		= T{show},
+		})
+
+		UI.settings.ShowIn[pkt] = show
+
+	end
+
+	UI.PacketsIN:sort(function (a, b)
+		return (a.Index < b.Index)
+	end)
+
+end
+
+function UI.LoadOutRules()
+
+	UI.PacketsOUT = T{}
+	local count = 0
+	for pkt, Rule in pairs(PacketsClientOUT) do
+
+		local show = UI.settings.ShowOut[pkt]
+
+		if nil == show then
+			show = true
+		end
+
+		UI.PacketsOUT:append(T{
+			Index   	= pkt,
+			Name		= Rule[1],
+			View		= T{show},
+		})
+
+		UI.settings.ShowOut[pkt] = show
+
+		count = count + 1
+	end
+
+	UI.PacketsOUT:sort(function (a, b)
+		return (a.Index < b.Index)
+	end)
+
+end
+
 --	---------------------------------------------------------------------------
 --	Loads the UI
 --	---------------------------------------------------------------------------
@@ -171,54 +229,11 @@ function UI.load()
 			now			= 0,
 			data		= 0,
 		})
-		
-	end
-	
-	for pkt, Rule in pairs(PacketsClientOUT) do
-
-		local show = UI.settings.ShowOut[pkt]
-		
-		if nil == show then
-			show = true
-		end
-
-		UI.PacketsOUT:append(T{
-			Index   	= pkt,
-			Name		= Rule[1],
-			View		= T{show},
-		})
-
-		--print(string.format('OUT 0x%03X .. Show %s', pkt, tostring(show)))
-		UI.settings.ShowOut[pkt] = show
 
 	end
 
-	UI.PacketsOUT:sort(function (a, b)
-		return (a.Index < b.Index)
-	end)
-
-	for pkt, Rule in pairs(PacketsClientIN) do
-
-		local show = UI.settings.ShowIn[pkt]
-		
-		if nil == show then
-			show = true
-		end
-
-		UI.PacketsIN:append(T{
-			Index   	= pkt,
-			Name		= Rule[1],
-			View		= T{show},
-		})
-
-		--print(string.format('IN 0x%03X .. Show %s', pkt, tostring(show)))
-		UI.settings.ShowIn[pkt] = show
-
-	end
-
-	UI.PacketsIN:sort(function (a, b)
-		return (a.Index < b.Index)
-	end)
+	UI.LoadOutRules()
+	UI.LoadInRules()
 
 	--	Push the settings back to disk
 
@@ -305,7 +320,7 @@ function UI.packet_in(Packet)
 			UI.PacketStack[UI.StackIn].data			= DataProc.EncodePacket(Packet)
 			
 			if UI.StackSize < UI.WindowSize then
-				UI.StackSize = UI.StackSize + 1 
+				UI.StackSize = UI.StackSize + 1
 			end
 			
 			if UI.StackIn < UI.WindowSize then
@@ -736,6 +751,86 @@ function UI.Render_InList()
 end
 
 --	---------------------------------------------------------------------------
+--	Handles the buttons in the config window
+--	---------------------------------------------------------------------------
+
+function UI.ConfigButtons()
+
+	--	Set ALL OUT
+
+	if imgui.Button('All Out', {110, 0})  then
+		for pkt, Rule in pairs(UI.PacketsOUT) do
+			Rule.View[1] = true
+			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
+		end
+		UI.SaveState()
+	end
+
+	--	Set NONE OUT
+
+	imgui.SameLine()
+
+	if imgui.Button('None Out', {110, 0}) then
+		for pkt, Rule in pairs(UI.PacketsOUT) do
+			Rule.View[1] = false
+			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
+		end
+		UI.SaveState()
+	end
+
+	--	Invert ALL OUT
+
+	imgui.SameLine()
+
+	if imgui.Button('Invert Out', {110, 0}) then
+		for pkt, Rule in pairs(UI.PacketsOUT) do
+			Rule.View[1] = not Rule.View[1]
+			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
+		end
+		UI.SaveState()
+	end
+
+	imgui.SameLine()
+
+	imgui.SetCursorPosX(376)
+
+	--	Set ALL IN
+
+	if imgui.Button('All In', {110, 0}) then
+		for pkt, Rule in pairs(UI.PacketsIN) do
+			Rule.View[1] = true
+			UI.settings.ShowIn[Rule.Index] = Rule.View[1]
+		end
+		UI.SaveState()
+	end
+
+	imgui.SameLine()
+
+	--	Set NONE IN
+
+	if imgui.Button('None In', {110, 0}) then
+		for pkt, Rule in pairs(UI.PacketsIN) do
+			Rule.View[1] = false
+			UI.settings.ShowIn[Rule.Index] = Rule.View[1]
+		end
+		UI.SaveState()
+	end
+
+	imgui.SameLine()
+
+	--	Invert ALL IN
+
+	if imgui.Button('Invert In', {110, 0}) then
+		for pkt, Rule in pairs(UI.PacketsIN) do
+			Rule.View[1] = not Rule.View[1]
+			UI.settings.ShowIn[Rule.Index] = Rule.View[1]
+		end
+		UI.SaveState()
+	end
+
+end
+
+--	---------------------------------------------------------------------------
 --	Renders the UI.
 --	---------------------------------------------------------------------------
 
@@ -762,11 +857,15 @@ function UI.Render()
 		imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1})
 		imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1})
 		
-		imgui.SetNextWindowSize({ 744, 454, })
-		imgui.SetNextWindowSizeConstraints({ 744 , 454, }, { FLT_MAX, FLT_MAX, })
+		imgui.SetNextWindowSize({ 744, 524, })
+		imgui.SetNextWindowSizeConstraints({ 744 , 524, }, { FLT_MAX, FLT_MAX, })
 
 		if (imgui.Begin('Ticker Tape - Configuration', 1, ImGuiWindowFlags_NoResize)) then
-				
+			
+			imgui.SetCursorPosY(imgui.GetCursorPosY()+3)
+			UI.ConfigButtons()
+			imgui.SetCursorPosY(imgui.GetCursorPosY()+5)
+
 			imgui.BeginChild('InPacketPanel', { 360, 414, }, true)
 				UI.Render_OutList()
 			imgui.EndChild()
@@ -777,10 +876,26 @@ function UI.Render()
 				UI.Render_InList()
 			imgui.EndChild()
 
+			imgui.SetCursorPosY(imgui.GetCursorPosY()+5)
+
+			if imgui.Button('Reload OUT Rules') then
+				UI.LoadOutRules()
+				CentralData.ReloadOUT(UI)
+			end
+		
+			imgui.SameLine()
+			imgui.SetCursorPosX(376)
+
+			if imgui.Button('Reload IN Rules') then
+				UI.LoadInRules()
+				CentralData.ReloadIN(UI)
+			end
+			
+			imgui.End()
+
 		end
 		
 		imgui.PopStyleColor(10)
-		imgui.End()
 
 	end
 	

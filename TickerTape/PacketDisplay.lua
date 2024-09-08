@@ -10,9 +10,6 @@ local chat	= require('chat')
 local imgui	= require('imgui')
 local ETC	= require('ETC')
 
-local PktDspRulesIN		= require('data/RulesIn')	--	Table of IN  display rules
-local PktDspRulesOUT	= require('data/RulesOut')	--	Table of OUT display rules
-
 local CentralData		= require('CentralData')
 local Decode			= require('decode')
 local DataProc			= require('DataProc')
@@ -389,6 +386,24 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	end
 
 	--	-----------------------------------------------------------------------
+	--	Music
+	--	-----------------------------------------------------------------------
+
+	if 'music' == RuleTable.Decode then
+		Decode.Music(PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Status
+	--	-----------------------------------------------------------------------
+
+	if 'status' == RuleTable.Decode then
+		Decode.Status(PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
+	end
+
+	--	-----------------------------------------------------------------------
 	--	Info
 	--	-----------------------------------------------------------------------
 
@@ -593,22 +608,30 @@ function PacketDisplay.VerifyPacketRule(direction, target)
 
 	if 1 == direction then
 
-		for Group, RuleTable in pairs(PktDspRulesIN) do
+		if nil ~= CentralData.PktDspRulesIN then
 
-			if nil ~= RuleTable and Group == target then
-				found = true
+			for Group, RuleTable in pairs(CentralData.PktDspRulesIN) do
+
+				if nil ~= RuleTable and Group == target then
+					found = true
+				end
 			end
+
 		end
 
 	else
 
-		for Group, RuleTable in pairs(PktDspRulesOUT) do
+		if nil ~= CentralData.PktDspRulesOUT then
 
-			if nil ~= RuleTable and Group == target then
-				found = true
+			for Group, RuleTable in pairs(CentralData.PktDspRulesOUT) do
+
+				if nil ~= RuleTable and Group == target then
+					found = true
+				end
 			end
-		end
 
+		end
+		
 	end
 
 	return found
@@ -695,7 +718,7 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 	if 1 == Packet.direction then
 
-		for Group, RuleTable in pairs(PktDspRulesIN) do
+		for Group, RuleTable in pairs(CentralData.PktDspRulesIN) do
 
 			if nil ~= RuleTable and Group == Packet.packet then
 				found = true
@@ -705,7 +728,7 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 	else
 
-		for Group, RuleTable in pairs(PktDspRulesOUT) do
+		for Group, RuleTable in pairs(CentralData.PktDspRulesOUT) do
 
 			if nil ~= RuleTable and Group == Packet.packet then
 				found = true
