@@ -693,3 +693,222 @@ There are options that will remove the border, how it ends up looking is very mu
 
 Before we go any further you need to know about widgets. There are a few that can significantly change the look and functionality of your interface. Once again JAFA is being reset to a basic empty window.
 
+I have added a new variable to the UIF data space ...
+```
+local UIF = {
+
+  ... 
+
+  CfgActive = false,
+}
+```
+Again, remember this is a table so observe the correct commas. I have added a few lines to the render function ...
+```
+  if (imgui.Button('Configure')) then
+      UIF.CfgActive = not UIF.CfgActive
+  end
+```
+At the bottom of the function, after the main window has been painted, I have added ...
+```
+  if UIF.CfgActive then
+
+      imgui.SetNextWindowSizeConstraints({ 320 , 200, }, { 320, 400, })
+
+      if (imgui.Begin('Config', 1, ImGuiWindowFlags_NoResize)) then
+          imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('For all your configuration needs') )
+      end
+
+  end
+```
+![JAFA-035](JAFA-035.png)
+
+You will see that the button has been drawn for you, the size is determined by the text you provided, and the location is at the current cursor location. The colour of the button will change as the mouse cursor moves over the button (naturally the two colours can be configured **BEFORE** you create the button, as can the text colour).
+
+You will see that the button is part of an **if** statement and the code inside is executed if the button is clicked. Remember, this is called (i.e. tested) once per video cycle.
+
+For this example I have toggled our new variable **CfgActive** which I go on to use a bit lower down to paint (or not) our new configuration window ...
+
+![JAFA-036](JAFA-036.png)
+
+Don't worry, the button doesn't bounce, you have to click it a second time to toggle the variable again, having the effect (visually) of closing the configuration window, though in reality, just not painting it.
+
+Another useful widget is the checkbox. 📌 The way this works is VERY different from the Windows meta so I have tried to make this as clear as possible (I got it wrong a LOT of times before I figured out how it worked).
+
+I have added a new variable ...
+```
+OurToggle = T{false},
+```
+You will notice that this a NOT a boolean like the last one, this is a table. I have added some new lines to the configuration window render function ...
+```
+  imgui.SetCursorPosY(100)
+
+  if (imgui.Checkbox('Toggle', UIF.OurToggle)) then
+
+      if UIF.OurToggle[1] then
+          --	Toggle ON
+          imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Toggle ON') )
+      else
+          --	Toggle OFF
+          imgui.TextColored({ 1.0, 0.0, 0.0, 1.0 }, ('Toggle OFF') )
+      end
+
+  end
+```
+![JAFA-037](JAFA-037.png)
+
+Again, the widget is drawn for you at the current cursor location using the text you provided. The default state of the button is OFF. If the button is clicked the code inside the **if** statement is executed. You might expect that you would have to toggle the state of the flag, but that is done for you **BEFORE** your code is executed, all you need to do is look at the current state.
+
+When you click the button you will briefly see one of the two messages below the button. The text remains until the end of the video cycle and then they are erase by the start of the next cycle.
+
+📌 This is important, you will only get called once, on the cycle where the button is clicked. If you want a more permanent visual feedback you will need to do something like ...
+```
+  if (imgui.Checkbox('Toggle', UIF.OurToggle)) then
+      imgui.SameLine()
+      imgui.TextColored({ 1.0, 1.0, 0.0, 1.0 }, (' ... ACTIONED') )
+  end
+
+  imgui.SetCursorPosY(170)
+
+  if UIF.OurToggle[1] then
+      imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Toggle is ON') )
+  else
+      imgui.TextColored({ 1.0, 0.4, 0.4, 1.0 }, ('Toggle is OFF') )
+  end
+```
+![JAFA-038](JAFA-038.png)
+
+When you click you will briefly see the **ACTIONED** text, and the line at the bottom of the window will show you the current state of the toggle.
+
+This is useful when the toggle is used to start or stop a process. You can do this inside the **Checkbox** statement, but outside the statement you still know the current state ....
+
+```
+  if UIF.OurToggle[1] then
+      -- Start Laughing
+  else
+      -- Stop Laughing
+  end
+
+  if UIF.OurToggle[1] then
+      imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('HA HA HA HA') )
+  else
+      imgui.TextColored({ 1.0, 0.4, 0.4, 1.0 }, ('It\'s not funny any more ...') )
+  end
+```
+I have one last widget to show you, though it's not really a widget ...
+```
+  imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
+  imgui.Separator()
+  imgui.PopStyleColor()
+```
+The line is drawn at the current cursor position and I find (to my eyes) that it is a fraction too high, so I usually use **SetCursorPosY** to move the cursor down a couple of pixels. It's a small thing, but it does help to keep your windows tidy ...
+
+![JAFA-039](JAFA-039.png)
+##
+### Chapter Nine - Difficult Children
+
+This chapter will demonstrate how to use selectable items in a list. This is often useful when you are giving the user a ***"pick one from many"*** type of choice, but it has a hidden trap that I will help you avoid.
+
+The render function has been cleared and the size of the window changed to make this easier to demonstrate. The variables we added have been removed. For clarity, this is the body of the render function for the main window ...
+```
+  imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, 'Hello Vana\'diel (Chapter 9)' )
+
+  imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
+  imgui.Separator()
+  imgui.PopStyleColor()
+
+  imgui.PushStyleColor(ImGuiCol_HeaderHovered,  {0.6, 0.4, 0.0, 1.0})
+  imgui.PushStyleColor(ImGuiCol_HeaderActive,   {0.7, 0.5, 0.0, 1.0})
+  imgui.PushStyleColor(ImGuiCol_Text,           {1.0, 1.0, 1.0, 1.0})
+
+  local IsSelected = false
+
+  for i = 1, 9 do
+
+      local Str = string.format('Option Number %d', i)
+
+      if (imgui.Selectable(Str, IsSelected)) then
+      end
+
+  end
+
+  imgui.PopStyleColor(3)
+
+  imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
+  imgui.Separator()
+  imgui.PopStyleColor()
+
+  imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Selected = ???') )
+```
+
+This is what we see ...
+
+![JAFA-040](JAFA-040.png)
+
+If you roll the mouse cursor over the options you will see them animate. This is all done for you in the library. If you click on one you will see its colour change. All very clever. What is less clever is the constants used to describe these fields ...
+```
+  imgui.PushStyleColor(ImGuiCol_HeaderHovered,  {0.6, 0.4, 0.0, 1.0})
+  imgui.PushStyleColor(ImGuiCol_HeaderActive,   {0.7, 0.5, 0.0, 1.0})
+```
+The same constant names (and values) are used for Headers, Menu Items, Tree Nodes and about a zillion other things, so it can be confusing trying to find the right constant.
+
+At the moment, each selectable item in the list is told that it is NOT selected. We will now change this by adding a new variable and setting it here ...
+```
+LineSelected = -1,
+```
+I know that I don't need to remind you that this variable is in a table ...
+
+Now we change the lines in the body of the render function as shown here ...
+
+```
+  imgui.PushStyleColor(ImGuiCol_HeaderHovered,  {0.6, 0.4, 0.0, 1.0})
+  imgui.PushStyleColor(ImGuiCol_HeaderActive,   {0.7, 0.5, 0.0, 1.0})
+  imgui.PushStyleColor(ImGuiCol_Text,           {1.0, 1.0, 1.0, 1.0})
+  imgui.PushStyleColor(ImGuiCol_Header,         {0.5, 0.3, 0.0, 1.0})
+  
+  for i = 1, 9 do
+
+      local IsSelected = i == UIF.LineSelected
+      local Str = string.format('Option Number %d', i)
+
+      if (imgui.Selectable(Str, IsSelected)) then
+          UIF.LineSelected = i
+      end
+
+  end
+
+  imgui.PopStyleColor(4)
+```
+We will also change the last text output ...
+```
+  imgui.TextColored({ 0.0, 0.9, 0.0, 1.0 }, ('Selected = %d'):fmt(UIF.LineSelected) )
+```
+
+Now we see ...
+
+![JAFA-041](JAFA-041.png)
+
+You will have noticed (I hope) a couple of points ...
+
+- The selection extends to the right edge of the window.
+- The only time that the selection changes is when you click on it.
+
+There are several versions of **Selectable**, some versions allow you to have multiple selections (each one acts as a toggle) and a version where the selection responds to a double mouse click.
+
+For now we will address the problem that you may run into (it wasted a lot of my time until I realised what was happening). I only need to change one line ...
+```
+  local Str = string.format('Are these the droids that you are looking for?')
+```
+
+![JAFA-042](JAFA-042.png)
+
+Okay, and I changed the window size as well, but try and select a line now, go on, I dare you ...
+
+You will find that you can select line 1, but NOTHING else. The reason for this is that the selectable items are held (somewhere in the background) in a table, a table that needs a unique key. 
+
+You might be kind and call it a feature, or more brutal and call it what it is, a bug. You might ask who would give users a choice between identical items? But there are instances where the only thing that identifies one item from another is the order in which the items occurred. So how do we fix it?
+
+Simple really, we just use the order. Look at the change, again, just one line ...
+```
+local Str = string.format('Are these the droids that you are looking for?\t\t\t%d', i)
+```
+By using a couple of tabs, the part of the text that makes it unique is off screen. Now our selectable list works with, what looks like identical items (I won't tell if you don't).
