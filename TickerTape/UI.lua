@@ -33,6 +33,17 @@ local PacketsClientIN		= require('data/PacketsB')	--	Table of packets IN to the 
 local DataProc 				= require('DataProc')
 local PacketDisplay			= require('PacketDisplay')
 
+local InRun					= false
+local OutRun				= false
+local InMode				= 1
+local OutMode				= 1
+local ModeTextIn			= { 'Normal##IN',  'Start On##IN',  'Stop On##IN',  'Burst On##IN',  '- WAIT -##IN'  }
+local ModeTextOut			= { 'Normal##OUT', 'Start On##OUT', 'Stop On##OUT', 'Burst On##OUT', '- WAIT -##OUT' }
+local InFilter				= { '' }
+local OutFilter				= { '' }
+local InHunt				= 0
+local OutHunt				= 0
+local AnyCount				= 10
 local ShowMain				= T{}
 local ShowConfig			= T{true, }
 
@@ -301,10 +312,30 @@ end
 
 function UI.packet_in(Packet)
 
-	if UI.SeqRun[1] then
+	--	Look for a reason to start (Start ON)
+
+	if InRun and 2 == InMode then
+		if Packet.id == InHunt then
+			UI.SeqRun[1] = true
+			InRun  = false
+			InMode = 1
+		end
+	end
+
+	--	Look for a reason to start (Burst ON)
+
+	if InRun and 4 == InMode then
+		if Packet.id == InHunt then
+			UI.SeqRun[1] = true
+			AnyCount = 18
+			InMode   = 5
+		end
+	end
+
+	if ((UI.SeqRun[1]) or (InRun and 4 == InMode)) then
 
 		local Show = true
-		
+
 		for pkt, Rule in pairs(UI.PacketsIN) do
 			if (Packet.id == Rule.Index) then
 				Show = Rule.View[1]
@@ -330,21 +361,46 @@ function UI.packet_in(Packet)
 			end
 
 		end
-		
+
+		--	Look for a reason to stop
+
+		if InRun and 3 == InMode then
+			if Packet.id == InHunt then
+				UI.SeqRun[1] = false
+				InRun  = false
+				InMode = 1
+			end
+		end
+
+		--	Look for a reason to stop (Burst OFF in either mode)
+
+		if (InRun and 5 == InMode) or (OutRun and 5 == OutMode) then
+			
+			if Show then AnyCount = AnyCount - 1 end
+
+			if AnyCount <= 0 then
+				UI.SeqRun[1] = false
+				InRun   = false
+				InMode  = 1
+				OutRun  = false
+				OutMode = 1
+			end
+		end
+
 	end
-	
+
     if UI.SaveLog then
 
 		local RootDir = UI.GetScriptPath() .. 'captures'
 
 		local timestr = os.date('%Y-%m-%d %H:%M:%S')
 		local hexidstr = string.format('0x%.3X', Packet.id)
-		
+
 		MiniFiles.FileAppend(RootDir, UI.FileName, string.format('[%s] Incoming packet %s\n', timestr, hexidstr))
 		MiniFiles.FileAppend(RootDir, UI.FileName, UI.RawData(Packet))
 
     end
-	
+
 end
 
 --	---------------------------------------------------------------------------
@@ -353,18 +409,38 @@ end
 
 function UI.packet_out(Packet)
 
-	if UI.SeqRun[1] then		
-			
+	--	Look for a reason to start (Start ON)
+
+	if OutRun and 2 == OutMode then
+		if Packet.id == OutHunt then
+			UI.SeqRun[1] = true
+			OutRun  = false
+			OutMode = 1
+		end
+	end
+
+	--	Look for a reason to start (Burst)
+
+	if OutRun and 4 == OutMode then
+		if Packet.id == OutHunt then
+			UI.SeqRun[1] = true
+			AnyCount = 18
+			OutMode  = 5
+		end
+	end
+
+	if ((UI.SeqRun[1]) or (OutRun and 4 == OutMode)) then
+
 		local Show = true
-		
+
 		for pkt, Rule in pairs(UI.PacketsOUT) do
 			if (Packet.id == Rule.Index) then
 				Show = Rule.View[1]
 			end
-		end	
-		
+		end
+
 		if Show then
-			
+
 			UI.PacketStack[UI.StackIn].direction 	= -1
 			UI.PacketStack[UI.StackIn].packet		= Packet.id
 			UI.PacketStack[UI.StackIn].now			= os.date('[%M:%S]', os.time())
@@ -374,29 +450,54 @@ function UI.packet_out(Packet)
 			if UI.StackSize < UI.WindowSize then
 				UI.StackSize = UI.StackSize + 1 
 			end
-			
+
 			if UI.StackIn < UI.WindowSize then
 				UI.StackIn = UI.StackIn + 1
 			else
 				UI.StackIn = 1
 			end
-		
+
 		end
-		
+
+		--	Look for a reason to stop
+
+		if OutRun and 3 == OutMode then
+			if Packet.id == OutHunt then
+				UI.SeqRun[1] = false
+				OutRun  = false
+				OutMode = 1
+			end
+		end
+
+		--	Look for a reason to stop (Burst OFF in either mode)
+
+		if (InRun and 5 == InMode) or (OutRun and 5 == OutMode) then
+
+			if Show then AnyCount = AnyCount - 1 end
+
+			if AnyCount <= 0 then
+				UI.SeqRun[1] = false
+				InRun   = false
+				InMode  = 1
+				OutRun  = false
+				OutMode = 1
+			end
+		end
+
 	end
-	
+
     if UI.SaveLog then
 
 		local RootDir = UI.GetScriptPath() .. 'captures'
 
 		local timestr = os.date('%Y-%m-%d %H:%M:%S')
 		local hexidstr = string.format('0x%.3X', Packet.id)
-		
+
 		MiniFiles.FileAppend(RootDir, UI.FileName, string.format('[%s] Outgoing packet %s\n', timestr, hexidstr))
 		MiniFiles.FileAppend(RootDir, UI.FileName, UI.RawData(Packet))
 
     end
-	
+
 end
 
 --	---------------------------------------------------------------------------
@@ -607,6 +708,11 @@ function UI.RenderSequencerStatic()
 
 	if UI.RenderSequencerCommon() and UI.StackSize > 0 then 
 
+		imgui.PushStyleColor(ImGuiCol_Header, 			{0.75, 0.25, 0.25, 1.00} )
+		imgui.PushStyleColor(ImGuiCol_HeaderHovered, 	{0.90, 0.31, 0.31, 1.00} )
+		imgui.PushStyleColor(ImGuiCol_HeaderActive, 	{1.00, 0.44, 0.44, 1.00} )
+		imgui.PushStyleColor(ImGuiCol_Text, 			{1.0, 1.0, 0.0, 1})
+
 		local index = 1		--	We cannot trust the key, so we use an index as well	
 
 		for key = 0, (UI.StackSize - 1) do
@@ -640,8 +746,10 @@ function UI.RenderSequencerStatic()
 			
 		end
 
+		imgui.PopStyleColor(4)		--	Local
+
 		imgui.End()
-		imgui.PopStyleColor(4)
+		imgui.PopStyleColor(4)		--	From common
 	
 	end
 	
@@ -713,19 +821,24 @@ end
 function UI.Render_OutList()
 
 	for pkt, Rule in pairs(UI.PacketsOUT) do
-	
+
 		local name = string.format('[0x%.3X]', Rule.Index)
-				
+
 		if (imgui.Checkbox(name, Rule.View)) then 
 			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
 			UI.SaveState()
 		end
-		
+
 		imgui.SameLine()
-		imgui.TextColored( { 0.6, 0.6, 1.0, 1.0 }, ('%s'):fmt(Rule.Name) )
-		
+
+		if Rule.Index == OutHunt and OutRun then
+			imgui.TextColored( { 1.0, 0.0, 0.0, 1.0 }, ('%s'):fmt(Rule.Name) )
+		else
+			imgui.TextColored( { 0.6, 0.6, 1.0, 1.0 }, ('%s'):fmt(Rule.Name) )
+		end
+
 	end
-	
+
 end
 
 --	---------------------------------------------------------------------------
@@ -744,8 +857,13 @@ function UI.Render_InList()
 		end
 		
 		imgui.SameLine()
-		imgui.TextColored( { 0.2, 1.0, 0.2, 1.0 }, ('%s'):fmt(Rule.Name) )
-		
+
+		if Rule.Index == InHunt and InRun then
+			imgui.TextColored( { 1.0, 0.0, 0.0, 1.0 }, ('%s'):fmt(Rule.Name) )
+		else
+			imgui.TextColored( { 0.2, 1.0, 0.2, 1.0 }, ('%s'):fmt(Rule.Name) )
+		end
+
 	end
 
 end
@@ -758,7 +876,7 @@ function UI.ConfigButtons()
 
 	--	Set ALL OUT
 
-	if imgui.Button('All Out', {110, 0})  then
+	if imgui.Button('All##Out', {50, 0})  then
 		for pkt, Rule in pairs(UI.PacketsOUT) do
 			Rule.View[1] = true
 			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
@@ -770,7 +888,7 @@ function UI.ConfigButtons()
 
 	imgui.SameLine()
 
-	if imgui.Button('None Out', {110, 0}) then
+	if imgui.Button('None##Out', {50, 0}) then
 		for pkt, Rule in pairs(UI.PacketsOUT) do
 			Rule.View[1] = false
 			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
@@ -782,10 +900,29 @@ function UI.ConfigButtons()
 
 	imgui.SameLine()
 
-	if imgui.Button('Invert Out', {110, 0}) then
+	if imgui.Button('Invert##Out', {75, 0}) then
 		for pkt, Rule in pairs(UI.PacketsOUT) do
 			Rule.View[1] = not Rule.View[1]
 			UI.settings.ShowOut[Rule.Index] = Rule.View[1]
+		end
+		UI.SaveState()
+	end
+
+	--	Special OUT
+
+	imgui.SameLine()
+
+	if imgui.Button('Defined##Out', {75, 0}) then
+		for pkt, Rule in pairs(UI.PacketsOUT) do
+
+			if PacketDisplay.VerifyPacketRule(-1, Rule.Index) then
+				Rule.View[1] = true
+				UI.settings.ShowOut[Rule.Index] = true
+			else
+				Rule.View[1] = false
+				UI.settings.ShowOut[Rule.Index] = false
+			end
+
 		end
 		UI.SaveState()
 	end
@@ -796,7 +933,7 @@ function UI.ConfigButtons()
 
 	--	Set ALL IN
 
-	if imgui.Button('All In', {110, 0}) then
+	if imgui.Button('All##In', {50, 0}) then
 		for pkt, Rule in pairs(UI.PacketsIN) do
 			Rule.View[1] = true
 			UI.settings.ShowIn[Rule.Index] = Rule.View[1]
@@ -808,7 +945,7 @@ function UI.ConfigButtons()
 
 	--	Set NONE IN
 
-	if imgui.Button('None In', {110, 0}) then
+	if imgui.Button('None##In', {50, 0}) then
 		for pkt, Rule in pairs(UI.PacketsIN) do
 			Rule.View[1] = false
 			UI.settings.ShowIn[Rule.Index] = Rule.View[1]
@@ -820,13 +957,98 @@ function UI.ConfigButtons()
 
 	--	Invert ALL IN
 
-	if imgui.Button('Invert In', {110, 0}) then
+	if imgui.Button('Invert##In', {75, 0}) then
 		for pkt, Rule in pairs(UI.PacketsIN) do
 			Rule.View[1] = not Rule.View[1]
 			UI.settings.ShowIn[Rule.Index] = Rule.View[1]
 		end
 		UI.SaveState()
 	end
+
+	--	Special IN
+
+	imgui.SameLine()
+
+	if imgui.Button('Defined##In', {75, 0}) then
+		for pkt, Rule in pairs(UI.PacketsIN) do
+
+			if PacketDisplay.VerifyPacketRule(1, Rule.Index) then
+				Rule.View[1] = true
+				UI.settings.ShowIn[Rule.Index] = true
+			else
+				Rule.View[1] = false
+				UI.settings.ShowIn[Rule.Index] = false
+			end
+
+		end
+		UI.SaveState()
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Extract the IN packet ID
+--	---------------------------------------------------------------------------
+
+function UI.StartInFilter()
+
+	local Hunt = 0
+
+	for i=1, string.len(InFilter[1]) do
+
+		Hunt = Hunt * 16
+
+		local This = InFilter[1]:byte(i, i)
+
+		if This >= 48 and This <= 57 then		--	0 ~ 9
+			Hunt = Hunt + This - 48
+		end
+
+		if This >= 65 and This <= 70 then		--	A ~ F
+			Hunt = Hunt + This - 65 + 10
+		end
+
+		if This >= 97 and This <= 102 then		--	a ~ f
+			Hunt = Hunt + This - 97 + 10
+		end
+
+	end
+
+	InHunt = Hunt
+	imgui.SetWindowFocus('Set##2')
+
+end
+
+--	---------------------------------------------------------------------------
+--	Extract the OUT packet ID
+--	---------------------------------------------------------------------------
+
+function UI.StartOutFilter()
+
+	local Hunt = 0
+
+	for i=1, string.len(OutFilter[1]) do
+
+		Hunt = Hunt * 16
+
+		local This = OutFilter[1]:byte(i, i)
+
+		if This >= 48 and This <= 57 then		--	0 ~ 9
+			Hunt = Hunt + This - 48
+		end
+
+		if This >= 65 and This <= 70 then		--	A ~ F
+			Hunt = Hunt + This - 65 + 10
+		end
+
+		if This >= 97 and This <= 102 then		--	a ~ f
+			Hunt = Hunt + This - 97 + 10
+		end
+
+	end
+
+	OutHunt = Hunt
+	imgui.SetWindowFocus('Set##2')
 
 end
 
@@ -835,11 +1057,11 @@ end
 --	---------------------------------------------------------------------------
 
 function UI.Render()
-    
+
 	--	Don't waste time rendering if closed
-    
+
 	if (not UI.ShowMain[1]) then return end
-	
+
 	--	-----------------------------------------------------------------------
 	--	Render the configuration window
 	--	-----------------------------------------------------------------------
@@ -856,15 +1078,22 @@ function UI.Render()
 		imgui.PushStyleColor(ImGuiCol_FrameBg, 			{0, 0.06, .16,   1})
 		imgui.PushStyleColor(ImGuiCol_TabActive,		{0, 0.50, 0.75,  1})
 		imgui.PushStyleColor(ImGuiCol_TabHovered,		{0, 0.40, 0.65,  1})
-		
+		imgui.PushStyleColor(ImGuiCol_Button, 			{0.75, 0.25, 0.25, 1.00} )
+		imgui.PushStyleColor(ImGuiCol_ButtonHovered, 	{0.90, 0.31, 0.31, 1.00} )
+		imgui.PushStyleColor(ImGuiCol_ButtonActive, 	{1.00, 0.44, 0.44, 1.00} )
+
 		imgui.SetNextWindowSize({ 744, 524, })
 		imgui.SetNextWindowSizeConstraints({ 744 , 524, }, { FLT_MAX, FLT_MAX, })
 
 		if (imgui.Begin('Ticker Tape - Configuration', 1, ImGuiWindowFlags_NoResize)) then
-			
+
+			--	Buttons at the top
+
 			imgui.SetCursorPosY(imgui.GetCursorPosY()+3)
 			UI.ConfigButtons()
 			imgui.SetCursorPosY(imgui.GetCursorPosY()+5)
+
+			--	Left and right panels
 
 			imgui.BeginChild('InPacketPanel', { 360, 414, }, true)
 				UI.Render_OutList()
@@ -876,39 +1105,139 @@ function UI.Render()
 				UI.Render_InList()
 			imgui.EndChild()
 
+			--	Reload
+
 			imgui.SetCursorPosY(imgui.GetCursorPosY()+5)
 
-			if imgui.Button('Reload OUT Rules') then
+			if imgui.Button('Reload Rules##OUT', {120, 0}) then
 				UI.LoadOutRules()
 				CentralData.ReloadOUT(UI)
 			end
-		
+
+			imgui.SameLine()
+			imgui.SetCursorPosX(170)
+
+			if OutRun then
+				imgui.PushStyleColor(ImGuiCol_Button, 			{1, 0.6, 0.6,   1} )
+				imgui.PushStyleColor(ImGuiCol_ButtonHovered, 	{1, 0.7, 0.7,   1} )
+				imgui.PushStyleColor(ImGuiCol_ButtonActive, 	{1, 0.8, 0.8,   1} )
+				imgui.PushStyleColor(ImGuiCol_Text, 			{1.0, 0.0, 0.0, 1} )
+			else
+				imgui.PushStyleColor(ImGuiCol_Button, 			{0.75, 0.25, 0.25, 1.00} )
+				imgui.PushStyleColor(ImGuiCol_ButtonHovered, 	{0.90, 0.31, 0.31, 1.00} )
+				imgui.PushStyleColor(ImGuiCol_ButtonActive, 	{1.00, 0.44, 0.44, 1.00} )
+				imgui.PushStyleColor(ImGuiCol_Text, 			{1.0, 1.0, 0.0, 1})
+			end
+
+			if imgui.Button(ModeTextOut[OutMode], {85, 0}) then
+				if OutRun then
+					OutRun = false
+				else			
+					if OutMode < 4 then
+						OutMode = OutMode + 1 
+					else
+						OutMode = 1
+					end
+				end
+			end
+
+			imgui.PopStyleColor(4)
+
+			imgui.SameLine()
+			imgui.SetCursorPosX(259)
+
+			imgui.PushItemWidth(50)
+			imgui.InputText('##OutLook', OutFilter, 5)
+			imgui.PopItemWidth()
+
+			imgui.SameLine()
+			imgui.SetCursorPosX(313)
+
+			if imgui.Button('Set##1', {40, 0}) then
+				if OutRun then 
+					OutFilter = { '' }
+				else
+					UI.StartOutFilter()
+				end
+				OutRun = not OutRun
+			end
+
+			--	Reload
+
 			imgui.SameLine()
 			imgui.SetCursorPosX(376)
 
-			if imgui.Button('Reload IN Rules') then
+			if imgui.Button('Reload Rules##IN', {120, 0}) then
 				UI.LoadInRules()
 				CentralData.ReloadIN(UI)
 			end
-			
+
+			imgui.SameLine()
+			imgui.SetCursorPosX(170+368)
+
+			if InRun then
+				imgui.PushStyleColor(ImGuiCol_Button, 			{1, 0.6, 0.6,   1} )
+				imgui.PushStyleColor(ImGuiCol_ButtonHovered, 	{1, 0.7, 0.7,   1} )
+				imgui.PushStyleColor(ImGuiCol_ButtonActive, 	{1, 0.8, 0.8,   1} )
+				imgui.PushStyleColor(ImGuiCol_Text, 			{1.0, 0.0, 0.0, 1} )
+			else
+				imgui.PushStyleColor(ImGuiCol_Button, 			{0.75, 0.25, 0.25, 1.00} )
+				imgui.PushStyleColor(ImGuiCol_ButtonHovered, 	{0.90, 0.31, 0.31, 1.00} )
+				imgui.PushStyleColor(ImGuiCol_ButtonActive, 	{1.00, 0.44, 0.44, 1.00} )
+				imgui.PushStyleColor(ImGuiCol_Text, 			{1.0, 1.0, 0.0, 1})
+			end
+
+			if imgui.Button(ModeTextIn[InMode], {85, 0}) then
+				if InRun then
+					InRun = false
+				else
+					if InMode < 4 then
+						InMode = InMode + 1 
+					else
+						InMode = 1
+					end
+				end
+			end
+
+			imgui.PopStyleColor(4)
+
+			imgui.SameLine()
+			imgui.SetCursorPosX(627)
+
+			imgui.PushItemWidth(50)
+			imgui.InputText('##In Look', InFilter, 5)
+			imgui.PopItemWidth()
+
+			imgui.SameLine()
+			imgui.SetCursorPosX(681)
+
+			if imgui.Button('Set##2', {40, 0}) then
+				if InRun then 
+					InFilter = { '' }
+				else
+					UI.StartInFilter()
+				end
+				InRun = not InRun
+			end
+
 			imgui.End()
 
 		end
-		
-		imgui.PopStyleColor(10)
+
+		imgui.PopStyleColor(13)
 
 	end
-	
+
 	--	-----------------------------------------------------------------------
 	--	Render the sequencer
 	--	-----------------------------------------------------------------------
-	
+
 	if UI.SeqRun[1] then
 		UI.RenderSequencer()
 	else
 		UI.RenderSequencerStatic()
 	end
-	
+
 	--	-----------------------------------------------------------------------
 	--	Render the packet viewer
 	--	-----------------------------------------------------------------------
@@ -916,7 +1245,7 @@ function UI.Render()
 	if UI.SeqRun[1] == false then
 		UI.PacketViewer()
 	end
-	
+
 end
 
 -- Return the UI object
