@@ -77,7 +77,7 @@ function UIF.load()
 end
 
 --	---------------------------------------------------------------------------
---	Handle the zone in packets 
+--	Handle the in packets 
 --	Packet = The packet object.
 --	---------------------------------------------------------------------------
 
@@ -86,7 +86,7 @@ function UIF.packet_in(Packet)
 end
 
 --	---------------------------------------------------------------------------
---	Handle the zone out packets 
+--	Handle the out packets 
 --	Packet = The packet object.
 --	---------------------------------------------------------------------------
 

@@ -59,14 +59,14 @@ end)
 --	 desc: Event called when the addon is processing incoming packets.
 --	---------------------------------------------------------------------------
 
-ashita.events.register('packet_in', 'packet_in_cb', UIF.packet_in);
+ashita.events.register('packet_in', 'packet_in_cb', UIF.packet_in)
 
 --	---------------------------------------------------------------------------
 --	event: packet_out
 --	 desc: Event called when the addon is processing outbound packets.
 --	---------------------------------------------------------------------------
 
-ashita.events.register('packet_out', 'packet_out_cb', UIF.packet_out);
+ashita.events.register('packet_out', 'packet_out_cb', UIF.packet_out)
 
 --	---------------------------------------------------------------------------
 --	event: d3d_present
