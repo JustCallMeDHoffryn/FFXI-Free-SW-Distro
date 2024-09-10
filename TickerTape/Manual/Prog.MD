@@ -150,6 +150,8 @@ While it is often enough to look at the raw value from the packet, sometimes it 
 |[attach](#attach)|An automation attachment name based on its Sub ID|
 |[time](#time)|Decodes a counter as a time string|
 |[psize](#psize)|Display the corrected packet size|
+|status|A status effect|
+
 ##
 #### Examples ...
 ###
@@ -418,6 +420,8 @@ A loop has a start **loop** command and an **end** command as shown below ...
 ![PG-044](PG-044.png)
 ###
 The value at **A** is the number of times the loop (the instructions between the **loop** and the **end**) will repeat, in this case a single line, line 6. The value at **B** is added to the byte offset of each line every time the end is reached. In this instance line 6 will be processed 20 times with an offset of 8, 9, 10, 11 etc.
+
+If **B** is set to -1 then the size of the target object is used, so in this example it would be 1 (byte), but if it was accessing a word or rword the increment would be 2 etc.
 
 The value at **C** is a BIT offset that can be added when you want to "walk down" a word, etc. In that instance you would probably set **B** to 0.
 

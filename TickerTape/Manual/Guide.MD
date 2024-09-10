@@ -18,7 +18,7 @@ If you want to auto-load the addon you will need to add it to the ***default.txt
 ##
 ### First Run
 
-When you start Ticker Tape you will see the ***Sequencer*** window ...
+When you start Ticker Tape you will see the (mostly empty) ***Sequencer*** window ...
 ### 
 ![TT-001](TT-001.png)
 ###
@@ -28,17 +28,19 @@ If the window does not appear you can use the command line ...
 
 This is a toggle and can be used to show / hide the windows at any time without interfering with the operation of the packet capture.
 
-You will see the packets streaming from the top of the window to the bottom, and then scrolling with the newest packet at the bottom of the window. While in ***run mode*** the window background is almost transparent minimizing the amount of the game information being obscured, while still showing the packet sequence.
+You will see the packets streaming from the top of the window to the bottom, and then scrolling with the newest packet at the bottom of the window. While in ***run mode*** (see the tick in the box at the very top left) the window background is almost transparent minimizing the amount of the game information being obscured, while still showing the sequence of packets flowing from the game.
+
+Each line has four (4) pieces of information ...
 ### 
 ![TT-002](TT-002.png)
 ###
-Each line has four (4) pieces of information, **A)** The time (min:sec) of the packet arrival, **B)** The ID (in Hex) of the packet, **C)** The direction of travel (this example is from the client to the Server) and finally **D)** The type of packet.
+**A)** Is the time (min:sec) when the packet arrival, **B)** Is the ID (in Hex) of the packet, **C)** The direction of travel (this example is from the Client to the Server, called an ***OUT*** packet) and finally **D)** The type of packet.
 
-The example below shows a packet travelling from the Server to the Client. The Blue / Green colour coding is a standard for FFXI packets ...
+The example below shows a packet traveling from the Server to the Client. The Blue / Green colour coding is a standard for FFXI packets ...
 ### 
 ![TT-003](TT-003.png)
 ###
-If you want to view a packet click on the Run button at the top left of the window, alternatively you can use the command ...
+If you want to view the contents of a packet you can click on the Run button at the top left of the window which will stop the sequencer. Alternatively you can use the command ...
 
 ```/tt run```
 
@@ -62,7 +64,7 @@ You will notice a tab at the bottom right of the Packet Viewer ...
 ### 
 ![TT-005a](TT-005a.png)
 ###
-This allows the window to be resized as needed.
+This allows the Packet Viewer window to be resized (vertically) as needed (it is locked horizontally).
 ##
 ### Filter
 
@@ -82,6 +84,76 @@ You can deselect any packet in these lists and the packet will no longer appear 
 - The addon will remember your settings between runs (You should manually load the addon to make use of this feature).
 ###
 - A packet that is disabled in this way will still be saved as part of a packet capture (see below).
+###
+- A packet that is disabled in this way can still be used as a trigger (see below).
+##
+Both the Out and In list have buttons above them that allow you to make mass selections ...
+
+|Button|Effect|
+|:---:|:---|
+|![TT-009](TT-009.png)|All packets (in this direction) will be enabled|
+|![TT-010](TT-010.png)|All packets (in this direction) will be disabled|
+|![TT-011](TT-011.png)|Invert the state of all packets. Enabled packets will be disabled and disabled packets will be enabled|
+|![TT-012](TT-012.png)|Packets that have a rule will be enabled, packets that don't have a rule will be disabled|
+###
+The last option is useful when you are adding new packet definitions to the rules file (thank you if you are).
+##
+### Triggering
+
+It is often the case that a packet you want to view is lost in the volume of packets sent. This is especially true when changing zone when between found and five **hundred** packets may be transferred. Using the trigger system allows you a way to catch the packet you are after.
+
+There is a trigger section at the bottom of each list (you can have a different trigger on In and Out and both can run at the same time) ...
+###
+![TT-013](TT-013.png)
+###
+For the purposes of this guide I want to look at the ***Inbound*** packet with the ID **0X0DF** (Char Update). I know that this packet is sent when zoning, but it gets lost.
+
+I will put the In the small edit field. Case doesn't matter and all input is considered to be hex so you can just put in **df** ...
+###
+![TT-014](TT-014.png)
+###
+Next click on the button to the left, this will cycle through the following modes ...
+
+|Button|Effect|
+|:---:|:---|
+|![TT-015](TT-015.png)|The trigger system is OFF|
+|![TT-016](TT-016.png)|When not running, the system will switch Run Mode **ON** when the identified packet is received|
+|![TT-017](TT-017.png)|When running, the system will switch Run Mode **OFF** when the identified packet is received|
+|![TT-018](TT-018.png)|When not running, the system will switch Run Mode **ON** when the identified packet is received and switch it **OFF** again 18 packets later|
+###
+We want to stop running when the packet is detected so toggle the button ...
+###
+![TT-019](TT-019.png)
+###
+Make sure that the sequencer is in Run Mode and click the **Set** button ...
+###
+![TT-020](TT-020.png)
+###
+The mode button will change to show that triggering is active, you will also notice that the trigger packet is identified in the appropriate list.
+
+So, now zone ...
+###
+![TT-021](TT-021.png)
+###
+The trigger controls will reset, the sequence will stop Run Mode and the packet we want will be at the bottom of the list.
+
+**Burst ON** is a bit different in that, you start with Run Mode **OFF**. Once the packet is detected Run Mode will switch ON for 18 packets and then switch OFF again.
+
+As soon as you click on the **Set** button you will see the Sequence become active, but the check box will still show it to be disabled. This is to allow the sequencer to capture the packets immediately before the trigger packet. Once triggered, the sequencer will capture an additional 18 packets (total from IN and OUT) and then stop ...
+###
+![TT-022](TT-022.png)
+###
+This allows you to see the packets just before and just after the trigger packet.
+
+To turn off the trigger mode (if you changed your mind) you can click on the trigger mode button, or the Set button a second time.
+##
+### Reloading Rules
+
+If you are editing a display rule it can be a pain when the packet is rare and hard to catch, the last thing you want to do is unload the addon, edit the definition and reload it and then hunt for the packet again
+
+Fortunately you can edit the definition while the addon is running and then click on the **Reload Rules** button to reload the appropriate definition list.
+
+While the addon tries to protect itself, it is STRONGLY suggested that you turn off Run Mode before you reload the rules. As you will be examining a packet this will usually be the case anyway.
 
 ##
 ### Capture
