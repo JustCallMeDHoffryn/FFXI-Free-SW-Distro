@@ -912,3 +912,136 @@ Simple really, we just use the order. Look at the change, again, just one line .
 local Str = string.format('Are these the droids that you are looking for?\t\t\t%d', i)
 ```
 By using a couple of tabs, the part of the text that makes it unique is off screen. Now our selectable list works with, what looks like identical items (I won't tell if you don't).
+##
+### Chapter Ten - Input Fields
+
+Everything so far has been about outputting data to the user in one way or another. There are times when you need some information from the user. This is not that hard to do (this will be a short chapter).
+
+Once again the code has been cleaned out.
+
+![JAFA-043](JAFA-043.png)
+
+I have added a new variable, same rules about commas apply ...
+```
+  InputField = { '' },
+```
+And a few new lines of code ...
+```
+  imgui.SetCursorPosY(100)
+
+  imgui.PushItemWidth(300)
+  imgui.InputText('Thoughts?', UIF.InputField, 64)
+  imgui.PopItemWidth()
+```
+![JAFA-044](JAFA-044.png)
+
+When you type in the text field it automatically scrolls (in chunks) allowing you to access more characters than you can see in the field.
+
+You have probably guessed that the value, 64, is the maximum size of the field contents. This includes a terminator, so in this case, 63 actual characters. The variable we added, **InputField**, acts as a memory for the input field between cycles, if we change the contents of this variable (it's a table) the edit field will change, as we will see below.
+
+It's unusual, in that, you cannot specify the physical size of the field in the **InputText** command, you have to push the width, then pop after. If you don't the field occupies the rest of the current line.
+
+If the field is in a table, like the one we created in Chapter Seven, this behavior makes sense, but for a single field on the page it's just one more thing to remember. If you enter a negative field width it will **left align** the field to the nearest left boundary.
+### 
+
+**A Small Confession ...**
+
+Back at the very beginning in Chapter One I told you that there was no memory between frames, which clearly, isn't exactly true. I wanted to emphasis the cycle based nature of the display, and while it's true, you do have to issue the ***paint*** commands every frame, imgui remembers the windows you create, their position and, in the case of text fields, their content state.
+
+The actual content of the field is held in your new variable, the table **InputField** that we added this chapter, but things like, has the content been scrolled, is maintained by imgui between cycles.
+
+So how do we access the data? Well, we just read our table. I find that a button that the user can click to indicate that he/she has finished is a good strategy, and a meta that any user of a window based input system is used to.
+
+I have added a couple of lines ...
+```
+  if imgui.Button('Let Me Have A Look') then
+      UIF.OutputField = UIF.InputField
+      UIF.InputField  = {''}
+  end
+
+  imgui.SetCursorPosY(200)
+  imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(UIF.OutputField[1]) )
+```
+
+Type your thoughts into the field and press the button ...
+
+![JAFA-045](JAFA-045.png)
+
+The data that is currently acting as memory for the edit field is copied and cleared. A bit lower down we show what we copied. Naturally, I added this new variable at the top of the code ...
+```
+  OutputField = { '' },
+```
+## 
+###
+
+**Final Tip**
+
+Unless I discover something new, this will be the last chapter, so, here is something I discovered.
+
+I will add a second button, the middle of the render function is now shown below ...
+```
+  if imgui.Button('Let Me Have A Look') then
+      UIF.OutputField = UIF.InputField
+      UIF.InputField  = {''}
+  end
+
+  imgui.SameLine()
+
+  if imgui.Button('Let Me Have A Look') then
+      UIF.OutputField = UIF.InputField
+      UIF.InputField  = {''}
+  end
+```
+So, put **"123"** in the field and click the left button, you will see this ...
+
+![JAFA-046](JAFA-046.png)
+
+Now put **"ABC"** in the field and click the right button ...
+
+![JAFA-047](JAFA-047.png)
+
+I'm sure you expected that, and you probably figured that the fact that the buttons have the same name in the same window means that imgui only remembers the first one.
+
+Is there a solution? Well, obviously we could do this ...
+```
+  if imgui.Button('Let Me Have A Look (1)') then
+      UIF.OutputField = UIF.InputField
+      UIF.InputField  = {''}
+  end
+
+  imgui.SameLine()
+
+  if imgui.Button('Let Me Have A Look (2)') then
+      UIF.OutputField = UIF.InputField
+      UIF.InputField  = {''}
+  end
+```
+
+![JAFA-048](JAFA-048.png)
+
+But frankly, that looks horrible. The secret (and I couldn't find this in the imgui demo) is to do this ...
+```
+  if imgui.Button('Let Me Have A Look##1') then
+      UIF.OutputField = UIF.InputField
+      UIF.InputField  = {''}
+  end
+
+  imgui.SameLine()
+
+  if imgui.Button('Let Me Have A Look##2') then
+      UIF.OutputField = UIF.InputField
+      UIF.InputField  = {''}
+  end
+```
+
+You will now find that both buttons work. Anything after (and including) the **##** in **ANY** field or window name (not just buttons) is included in the name used to identify the object, but it is **NOT** shown on the screen.
+
+## 
+###
+
+**Conclusion**
+
+Have fun writing your addon, and if you have any questions please ask, maybe the answer will form chapter 11 ...
+##
+***D'Hoffryn***
+2024
