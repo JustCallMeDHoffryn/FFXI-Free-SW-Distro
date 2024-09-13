@@ -26,9 +26,10 @@ local imgui			= require('imgui')
 local settings 		= require('settings')
 local MiniFiles		= require('MiniFiles')
 local CentralData	= require('CentralData')
+local DIAG			= require('Diagnostics')
 
-local PacketsClientOUT		= require('data/PacketsA')	--	Table of packets OUT from the client TO the server
-local PacketsClientIN		= require('data/PacketsB')	--	Table of packets IN to the client FROM the server
+local PacketsClientOUT		= require('data/PacketsOut')	--	Table of packets OUT from the client TO the server
+local PacketsClientIN		= require('data/PacketsIn')		--	Table of packets IN to the client FROM the server
 
 local DataProc 				= require('DataProc')
 local PacketDisplay			= require('PacketDisplay')
@@ -44,8 +45,6 @@ local OutFilter				= { '' }
 local InHunt				= 0
 local OutHunt				= 0
 local AnyCount				= 10
-local ShowMain				= T{}
-local ShowConfig			= T{true, }
 
 --	---------------------------------------------------------------------------
 --	UI Variables
@@ -66,7 +65,8 @@ local UI = {
 	
     -- Main Window
 
-    ShowMain = { false, },
+    ShowMain 		= { false, },
+	ShowDiagnostics	= { false, },
 	
 	PacketStack = T{},
 	
@@ -245,6 +245,8 @@ function UI.load()
 
 	UI.LoadOutRules()
 	UI.LoadInRules()
+
+	DIAG.BuildX64()
 
 	--	Push the settings back to disk
 
@@ -537,6 +539,10 @@ function UI.PacketViewer()
 	end
 	
 	imgui.PopStyleColor(4)
+
+	if UI.ShowDiagnostics[1] then
+		DIAG.ShowWindow(UI)
+	end
 
 end
 

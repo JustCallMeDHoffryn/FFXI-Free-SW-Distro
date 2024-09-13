@@ -50,16 +50,20 @@ function PacketDisplay.ExtractByte(Packet, Offset)
 	local Value1 = 0
 	local Value2 = 0
 	
-	if C1 >= 48 and C1 <= 57 then
-		Value1 = C1 - 48
-	else
-		Value1 = C1 - 65 + 10
+	if C1 ~= nil then
+		if C1 >= 48 and C1 <= 57 then
+			Value1 = C1 - 48
+		else
+			Value1 = C1 - 65 + 10
+		end
 	end
-	
-	if C2 >= 48 and C2 <= 57 then
-		Value2 = C2 - 48
-	else
-		Value2 = C2 - 65 + 10
+
+	if C2 ~= nil then
+		if C2 >= 48 and C2 <= 57 then
+			Value2 = C2 - 48
+		else
+			Value2 = C2 - 65 + 10
+		end
 	end
 
 	return (Value1 * 16) + Value2
@@ -187,11 +191,21 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		imgui.SetCursorPosX(XPos+120)
 
 		if BAND ~= 0 then
-			PacketDisplay.Flags[RuleTable.Flag] = 1
+		
+			if 'set' == RuleTable.Logic then
+				PacketDisplay.Flags[RuleTable.Flag] = 1
+			end
+
 			imgui.TextColored( ETC.Green, ('%s'):fmt(RuleTable.Info) )
+		
 		else
-			PacketDisplay.Flags[RuleTable.Flag] = 0
+		
+			if 'set' == RuleTable.Logic then
+				PacketDisplay.Flags[RuleTable.Flag] = 0
+			end
+		
 			imgui.TextColored( ETC.Soft, ('%s'):fmt(RuleTable.Info) )
+		
 		end
 
 		return	--	We don't want to exectute anything else ...
@@ -216,6 +230,24 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 	
 		return	--	We don't want to exectute anything else ...
 
+	end
+
+	--	-----------------------------------------------------------------------
+	--	WS Name
+	--	-----------------------------------------------------------------------
+
+	if 'wskill' == RuleTable.Decode then
+		Decode.WSkill(Packet, PacketDisplay, RuleTable, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	Spell Name
+	--	-----------------------------------------------------------------------
+
+	if 'spell' == RuleTable.Decode then
+		Decode.Spell(Packet, PacketDisplay, RuleTable, PacketDisplay.GetValueByType(Packet, RuleTable))
+		return
 	end
 
 	--	-----------------------------------------------------------------------
@@ -295,17 +327,16 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 		local name	= AshitaCore:GetMemoryManager():GetEntity():GetName(npc)
 		local Brush = ETC.Yellow
 
-		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			Brush = ETC.Brown
-		end
-
 		if nil ~= name then
 
-			Brush = ETC.Dirty
-			imgui.TextColored(Brush, ('%s'):fmt(name) )
+			imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
+			if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
+				Brush = ETC.Brown
+			end
+
+			imgui.TextColored(Brush, ('%s'):fmt(name) )
+	
 		end
 
 		--	NOTE .. we allow 'fall through' as we want the core to show the number
@@ -382,6 +413,15 @@ function PacketDisplay.ExecuteRule(Packet, RuleTable, UI)
 
 	if 'string' == RuleTable.Decode then
 		Decode.String(UI, PacketDisplay, RuleTable, Packet)
+		return
+	end
+
+	--	-----------------------------------------------------------------------
+	--	DBox Command
+	--	-----------------------------------------------------------------------
+
+	if 'dbox' == RuleTable.Decode then
+		Decode.DBox(PacketDisplay, RuleTable, Packet, PacketDisplay.GetValueByType(Packet, RuleTable))
 		return
 	end
 
@@ -671,7 +711,7 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 	end
 	
 	imgui.SameLine()
-	imgui.SetCursorPosX(xPos+300)
+	imgui.SetCursorPosX(xPos+260)
 
 	if ((imgui.Button('<<')) and (-1 ~= UI.LineSel)) then
 		
@@ -693,6 +733,12 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 			UI.LineSel = UI.LineSel + 1
 		end
 
+	end
+
+	imgui.SameLine()
+
+	if imgui.Button('X64') then		--	Show diagnostics
+		UI.ShowDiagnostics[1] = not UI.ShowDiagnostics[1]
 	end
 	
 	imgui.SetCursorPosY(imgui.GetCursorPosY()+4)
@@ -797,9 +843,12 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 					if 'ifnot' == RuleTable.Command then
 						
 						local Value = PacketDisplay.GetValueByType(Packet, RuleTable)
+						
+						local Skip  = 1
+						if 0 ~= RuleTable.CMDOpt2 then Skip = RuleTable.CMDOpt2 end
 
 						if Value == RuleTable.CMDOpt1 then 
-							CentralData.IDX	= CentralData.IDX + 1
+							CentralData.IDX	= CentralData.IDX + Skip
 							ExecuteThis		= false
 						end
 
@@ -807,8 +856,11 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 
 						local Value = PacketDisplay.GetValueByType(Packet, RuleTable)
 
+						local Skip  = 1
+						if 0 ~= RuleTable.CMDOpt2 then Skip = RuleTable.CMDOpt2 end
+
 						if Value ~= RuleTable.CMDOpt1 then
-							CentralData.IDX	= CentralData.IDX + 1
+							CentralData.IDX	= CentralData.IDX + Skip
 							ExecuteThis		= false
 						end
 

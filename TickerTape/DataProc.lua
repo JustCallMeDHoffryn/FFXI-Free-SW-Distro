@@ -194,17 +194,28 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 	end
 
 	--	-----------------------------------------------------------------------
-	--	TOP of a SWITCH (params pushed to stack for later)
+	--	TOP of a SWITCH or FSWITCH (params pushed to stack for later)
 	--	-----------------------------------------------------------------------
 
-	if Found == false and 'switch' == RuleTable.Command then
+	if Found == false and (('switch' == RuleTable.Command) or ('fswitch' == RuleTable.Command)) then
+
+		local TestValue = 0
+
+		if 'switch' == RuleTable.Command then
+
+			TestValue = PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1)
+
+			if RuleTable.CMDOpt2 == 2 then
+				TestValue = TestValue + (256 * (PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1 + 1)))
+			end
+
+		else
+
+			TestValue = PacketDisplay.Flags[RuleTable.CMDOpt1]
+
+		end
 
 		local StackSize = CentralData.GetSize()
-		local TestValue = PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1)
-
-		if RuleTable.CMDOpt2 == 2 then
-			TestValue = TestValue + (256 * (PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1 + 1)))
-		end
 
 		table.insert(CentralData.CmdStk, {	Index	= (StackSize + 1),
 											CMD 	= RuleTable.Command,
