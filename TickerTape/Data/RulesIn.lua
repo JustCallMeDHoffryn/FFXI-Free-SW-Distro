@@ -1,59 +1,65 @@
-local AllRules = {
 
-	--      CMD     {Offset    Format   Decode   Name  {Logic, Flag}  Table  Extra
-	--                bit
-	--                 #bits}
+local NewRules = {
 
 --	Standard Header -----------------------------------------------------------
 
 [0xFFF] = {
 
-	[1]  =  {  {},  {0},   'byte',    'raw',    'Packet ID'	},
-	[2]  =  {  {},  {1},   'byte',    'psize',  'Data Size'	},
-	[3]  =  {  {},  {2},   'rword',   'raw',    'Sync'	    },
-	[4]  =  {  {'return' } },
+	[1]		=	{ {},	{0},		'Packet ID',					},
+	[2]		=	{ {},	{1,2,0,9},	'Data Size',	{ 'psize' },	},
+	[3]		=	{ {},	{2, 2},		'Sync',							},
+	[4]		=	{ {'return' } 										},
 
 	},	--	[[ COMPLETE ]]
-
+	
 --	Zone In -------------------------------------------------------------------
 
 [0x00A] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 													},
-	[2]  =	{  {},  {4},		'rdword',	'raw',  	'Unique ID',     			},
-	[3]  =	{  {},  {8},		'rword',    'raw',  	'Actor ID',     			},
-	[4]  =	{  {},  {0x00B},	'byte',		'dir',		'Direction',    			},
-	[5]  =	{  {},  {0x00C},	'12bytes',	'xyz',		'Position',					},
-	[6]  =	{  {},  {0x018},	'rdword',	'raw',  	'Flags_1',     				},
-	[7]  =	{  {},  {0x01C},	'byte',		'raw',  	'Speed',     				},
-	[8]  =	{  {},  {0x01D},	'byte',		'raw',  	'Base Speed',  				},
-	[9]  =	{  {},  {0x01E},	'byte',		'raw',  	' HP %%',     				},
-	[10] =	{  {},  {0x01F},	'byte',		'raw',  	'Animation',   				},
-	[11] =	{  {},  {0x020},	'byte',		'raw',  	'Mount ID',   				},
-	[12] =	{  {},  {0x021},	'byte',		'raw',  	'Gender',   				},
-	[13] =	{  {},  {0x021},	'byte',		'raw',  	'Gender',   				},
-	[14] =	{  {},  {0x084},	'byte',		'string',  	'Name',		   				},
+	[1]		=	{ { 'call', 0xFFF }, 									},
+	[2]		=	{ {},  {4,4},			'Unique ID',					},
+	[3]		=	{ {},  {8,2},			'Actor ID',		{'eid', 'raw'},	},
+	[4]		=	{ {},  {0x00B},			'Direction',	{'dir'},	    },
+	[5]		=	{ {},  {0x00C},			'Position',		{'xyz'},		},
+	[6]		=	{ {},  {0x018,4},		'Flags_1',						},
+	[7]		=	{ {},  {0x01C},			'Speed',						},
+	[8]		=	{ {},  {0x01D},			'Base Speed',					},
+	[9]		=	{ {},  {0x01E},			' HP %%',						},
+	[10]	=	{ {},  {0x01F},			'Animation',					},
+	[11]	=	{ {},  {0x020},			'Mount ID',						},
 
-	[15] =	{  {},  {0x056},	'rword',	'music',  	'Music 1',	    			},
-	[16] =	{  {},  {0x058},	'rword',	'music',  	'Music 2',	    			},
-	[17] =	{  {},  {0x05A},	'rword',	'music',  	'Music 3',	    			},
-	[18] =	{  {},  {0x05C},	'rword',	'music',  	'Music 4',	    			},
-	[19] =	{  {},  {0x05E},	'byte',		'raw',  	'Music 5',	    			},
+	[12]	=	{ {},  {0x021,1,7,1},	'Gender',						},
+	[13]	=	{ {},  {0x021,1,0,3},	'Size',							},
+	[14]	=	{ {},  {0x084,16},		'Name',			{'string'},		},
 
-	[20] =	{  {},  {0x068},	'rword',	'raw',  	'Weather', 	{},		4		},
-	[21] =	{  {},  {0x06A},	'rdword',	'raw',  	'Weather Time', 		 	},
+	[15]	=	{ {},  {0x030},			'Zone ID',		{'zone'},		},
+	[16]	=	{ {},  {0x056,2},		'Music 1',		{'music'}, 		},
+	[17]	=	{ {},  {0x058,2},		'Music 2',		{'music'}, 		},
+	[18]	=	{ {},  {0x05A,2},		'Music 3',		{'music'}, 		},
+	[19]	=	{ {},  {0x05C,2},		'Music 4',		{'music'}, 		},
+	[20]	=	{ {},  {0x05E,2},		'Music 5',		{'music'}, 		},
 
-	[22] =	{  {},  {0x064},	'rword',	'raw',  	'Event ID',	    			},
-	[23] =	{  {},  {0x066},	'rword',	'raw',  	'Event Flags',    			},
+	[21]	=	{ {},  {0x068,2},		'Weather',		{'weather'},	},
+	[22]	=	{ {},  {0x06A,4},		'Weather Time',					},
 
-	[24] =	{  {},  {0x080},	'byte',		'raw',  	'Valid MH ID',    			},
-	[25] =	{  {},  {0x0A8},	'rword',	'raw',  	'MH Floor 2',    			},
-	[26] =	{  {},  {0x0AA},	'rword',	'raw',  	'MH Model ID',    			},
+	[23]	=	{ {},  {0x064,2},		'Event ID',						},
+	[24]	=	{ {},  {0x066,2},		'Event Flags',					},
 
-	[27] =	{  {},  {0x0AC},	'byte',		'raw',  	'In CS',	    			},
-	[28] =	{  {},  {0x0AF},	'byte',		'raw',  	'MH Menu Opts',    			},
+	[25]	=	{ {},  {0x080},			'Valid MH ID'					},
+	[26]	=	{ {},  {0x0A8,2},		'MH Floor 2',					},
+	[27]	=	{ {},  {0x0AA,2},		'MH Model ID',	{ 'house' }		},
+	[28]	=	{ {},  {0x0AC},			'In CS',						},
+	[29]	=	{ {},  {0x0AF},			'MH Menu Opts',					},
+
+	[30]	=	{ {},  {0x0A0,4},		'Play Time',	{'time', 'raw'}	},
 
 	},
+	
+}
+
+local AllRules = {
+
+--	Standard Header -----------------------------------------------------------
 
 --	Zone Out ------------------------------------------------------------------
 
@@ -136,12 +142,29 @@ local AllRules = {
 
 [0x028] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2]  =	{  {}, {4},        'byte',    'raw',     'Data Size'			},
-	[3]  =	{  {}, {5},        'rdword',  'entity',  'Actor'    			},
-	[4]  =	{  {}, {9},        'byte',    'raw',     'Target Cnt'			},
-	[5]  =	{  {}, {10,2,4},   'rdword',   'bits',    'Category',   {},  1   },
-	[6]  =	{  {}, {10,6,16},  'rdword',   'bits',    'Action ID',  {},  2   },
+	[1]  =  {  { 'call', 0xFFF },													},
+	[2]  =	{  {}, {4},        'byte',    'raw',     'Data Size'					},
+	[3]  =	{  {}, {5},        'rdword',  'entity',  'Actor'						},
+	[4]  =	{  {}, {9},        'byte',    'raw',     'Target Cnt'					},
+	[5]  =	{  {}, {10,2,4},   'rdword',  'bits',    'Category',  {'set', 1},  1	},
+
+	[6]  =  {  { 'fswitch', 1 },													},
+
+	[7]  =  {  { 'case', 1 },	     											},
+	[8]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Mode 1' },
+	[9]  =  {  { 'break' }, },  
+
+	[10] =  {  { 'case', 4 },	     											},
+	[11] =	{  {}, {10,6,10}, 'rdword',  'bits',    'Spell', 	},
+	[12]  =  {  { 'break' }, },  
+
+	[13] =  {  { 'case', 8 },	     											},
+	[14] =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Mode 8' },
+	[15]  =  {  { 'break' }, },  
+	
+	--[7]  =	{  {}, {10,6,16},  'rdword',   'bits',    'Action ID',  {},  2  },
+
+	[16] =  {  { 'end' },          												},
 
 	},	--	PART - Needs flag decode
 
@@ -217,6 +240,18 @@ local AllRules = {
 	[19] =  {  { 'break' },          											},
 
 	[20] =  {  { 'end' },          												},
+
+	},
+
+--	Auction House Menu --------------------------------------------------------
+
+[0x04C] = {
+
+	[1]  = { { 'call', 0xFFF }, 							    		},
+	[2]  = { {},  {4},  'byte',		'raw',		'Command'				},
+	[3]  = { {},  {5},  'byte',		'raw',		'AucWorkIndex'			},
+	[4]  = { {},  {6},  'byte',		'raw',		'Result'				},
+	[5]  = { {},  {7},  'byte',		'raw',		'ResultStatus'			},
 
 	},
 
@@ -592,4 +627,4 @@ local AllRules = {
 
 }
 
-return AllRules
+return NewRules
