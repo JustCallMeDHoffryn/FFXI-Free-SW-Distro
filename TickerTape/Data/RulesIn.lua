@@ -6,7 +6,7 @@ local NewRules = {
 [0xFFF] = {
 
 	[1]		=	{ {},	{0},		'Packet ID',					},
-	[2]		=	{ {},	{1,2,0,9},	'Data Size',	{ 'psize' },	},
+	[2]		=	{ {},	{1,1,1,7},	'Data Size',	{ 'psize' },	},
 	[3]		=	{ {},	{2, 2},		'Sync',							},
 	[4]		=	{ {'return' } 										},
 
@@ -47,58 +47,55 @@ local NewRules = {
 
 	[25]	=	{ {},  {0x080},			'Valid MH ID'					},
 	[26]	=	{ {},  {0x0A8,2},		'MH Floor 2',					},
-	[27]	=	{ {},  {0x0AA,2},		'MH Model ID',	{ 'house' }		},
+	[27]	=	{ {},  {0x0AA,2},		'MH Model ID',	{'house'}		},
 	[28]	=	{ {},  {0x0AC},			'In CS',						},
 	[29]	=	{ {},  {0x0AF},			'MH Menu Opts',					},
 
 	[30]	=	{ {},  {0x0A0,4},		'Play Time',	{'time', 'raw'}	},
 
-	},
-	
-}
-
-local AllRules = {
-
---	Standard Header -----------------------------------------------------------
-
---	Zone Out ------------------------------------------------------------------
-
-[0x00B] = {
-
-	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2]   =	{  {},  {4},      'rdword',      'raw',  'Type',     			},
-	[3]   =	{  {},  {8},      'byte', 	     'ip',   'Address',    			},
-	[4]   =	{  {},  {12},     'rword',       'raw',  'Port',     			},
-
 	},	--[[ COMPLETE ]]
 
+--	Zone Out ------------------------------------------------------------------
+	
+[0x00B] = {
+
+	[1]		=	{ { 'call', 0xFFF }, 									},
+	[2]		=	{ {},  {4,4},			'Type',							},
+	[3]		=	{ {},  {8},				'Address',		{ 'ip'  },      },
+	[4]		=	{ {},  {12,2},			'Port',							},
+	
+	},	--[[ COMPLETE ]]
+		
 --	NPC Update ----------------------------------------------------------------
 
 [0x00E] = T{
 
-	--	   	   Cmd	Offsets	  Format         Decode     Name            {Logic,flag} Table  Extra
+	[1]		=	{ { 'call', 0xFFF }, 												},
+	[2]		=	{ {},  {4,4},			'NPC ID',		{ 'entity', 'raw' },		},
+	[3]		=	{ {},  {8,2},			'Index',		{ 'raw' },					},
 
-	[1]   =	{  {},  {0},      'byte',        'raw',     'Packet ID',  },
-	[2]   =	{  {},  {1},      'byte',        'raw',     'Size',       },
-	[3]   =	{  {},  {2},      'rword',       'raw',     'Sync',       },
-	[4]   =	{  {},  {4},      'rdword',      'entity',  'NPC ID',     },
-	[5]   =	{  {},  {8},      'rword',       'raw',     'Index',      },
-	[6]   =	{  {},  {10,1},   'bit',         'bool',    'Bit Flag',     {'set', 1},  0,  '[Position etc]' },
-	[7]   =	{  {},  {10,2},   'bit',         'bool',    'Bit Flag',     {'set', 2},  0,  '[Claimer ID]' },
-	[8]   =	{  {},  {10,4},   'bit',         'bool',    'Bit Flag',     {'set', 3},  0,  '[HP, Status]' },
-	[9]   =	{  {},  {10,8},   'bit',         'bool',    'Bit Flag',     {'set', 4},  0,  '[Name]' },
-	[10]  =	{  {},  {12},     '12bytes',     'xyz',     'Position',     {'use', 1} },
-	[11]  =	{  {},  {11},     'byte',        'dir',     'Direction',    {'use', 1} },
-	[12]  =	{  {},  {24},     'rword',       'raw',     'Walk Count',   {'use', 1} },
-	[13]  =	{  {},  {28},     'byte',        'raw',     'Speed',        {'use', 1} },
-	[14]  =	{  {},  {29},     'byte',        'raw',     'S-Speed',      {'use', 1} },
-	[15]  =	{  {},  {44},     'rdword',      'player',  'Claimer',      {'use', 2} },
-	[16]  =	{  {},  {30},     'byte',        'raw',     ' HP %%',       {'use', 3} },
-	[17]  =	{  {},  {32},     'byte',        'raw',     'Status',       {'use', 3} },
-	[18]  =	{  {},  {31},     'byte',        'raw',     'Animation',  },
-	[19]  =	{  {},  {42},     'byte',        'raw',     'Anim Sub',   },
-	[20]  =	{  {},  {41},     'byte',        'raw',     'Allegiance', },
-	[21]  =	{  {},  {50},     'rword',       'raw',     'Model ID',   },
+	[4]		=	{ {},  {10,1,0,1},		'Position',    	{ 'bitflag' }				},
+	[5]		=	{ {},  {10,1,1,1},   	'Claimer',     	{ 'bitflag' }				},
+	[6]		=	{ {},  {10,1,2,1},   	'HP, Status',	{ 'bitflag' }				},
+	[7]		=	{ {},  {10,1,3,1},   	'Name',			{ 'bitflag' }				},
+	[8]		=	{ {},  {10,1,4,1},   	'Model',		{ 'bitflag' }				},
+	[9]		=	{ {},  {10,1,5,1},   	'Despawn',		{ 'bitflag' }				},
+	[10]	=	{ {},  {10,1,6,1},   	'Name 2',		{ 'bitflag' }				},
+	[11]	=	{ {},  {10,1,7,1},   	'(unknown)',	{ 'bitflag' }				},
+	
+	[12]	=	{ {},  {0x0C},			'Position',		{ 'xyz' },					},
+	[13]	=	{ {},  {0x0B},     		'Direction',    { 'dir' },					},
+	[14]	=	{ {},  {0x18,2},		'Walk Count'								},
+	[15]	=	{ {},  {0x1C},     		'Speed'										},
+	[16]	=	{ {},  {0x1D},     		'S-Speed'									},
+	[17]	=	{ {},  {0x2C,4},     	'Claimer',      { 'eid' }					},
+	[18]	=	{ {},  {0x1E},     		' HP %%'									},
+	[19]	=	{ {},  {0x20},     		'Status'									},
+
+	[20]	=	{ {},  {0x1F},     		'Animation'									},
+	[21]	=	{ {},  {0x2A},     		'Anim Sub'									},
+	[22]	=	{ {},  {0x29},     		'Allegiance'								},
+	[23]	=	{ {},  {0x32,2},		'Model ID'									},
 
 	},	--[[ COMPLETE ]]
 
@@ -106,22 +103,48 @@ local AllRules = {
 
 [0x01D] = {
 
-		[1]  =  {  { 'call', 0xFFF }, 										},
-		[2]   =	{  {},  {5},   'byte', 	     'store',	'Bag', 				},
-	
-		},	--[[ COMPLETE ]]
+	[1]		=	{ { 'call', 0xFFF }, 												},
+	[2]		=	{ { 'if', 0 },	{4},	'Busy'										},
+	[3]		=	{ { 'if', 1 },	{4},	'Finished'									},
+	[4]		=	{ {}, {5},				'Location',		{ 'store' }					},
 
+	[5]		=	{ {}, {8,1,0,1},		'Inventory',	{ 'bitflag' }				},
+	[6]		=	{ {}, {8,1,1,1},		'Mog Safe',		{ 'bitflag' }				},
+	[7]		=	{ {}, {8,1,2,1},		'Storage',		{ 'bitflag' }				},
+	[8]		=	{ {}, {8,1,3,1},		'Temp Items',	{ 'bitflag' }				},
+	[9]		=	{ {}, {8,1,4,1},		'Mog Locker',	{ 'bitflag' }				},
+	[10]	=	{ {}, {8,1,5,1},		'Mog Satchel',	{ 'bitflag' }				},
+	[11]	=	{ {}, {8,1,6,1},		'Mog Sack',		{ 'bitflag' }				},
+	[12]	=	{ {}, {8,1,7,1},		'Mog Case',		{ 'bitflag' }				},
+
+	[13]	=	{ {}, {9,1,0,1},		'Wardrobe 1',	{ 'bitflag' }				},
+	[14]	=	{ {}, {9,1,1,1},		'Mog Safe 2',	{ 'bitflag' }				},
+	[15]	=	{ {}, {9,1,2,1},		'Wardrobe 2',	{ 'bitflag' }				},
+	[16]	=	{ {}, {9,1,3,1},		'Wardrobe 3',	{ 'bitflag' }				},
+	[17]	=	{ {}, {9,1,4,1},		'Wardrobe 4',	{ 'bitflag' }				},
+	[18]	=	{ {}, {9,1,5,1},		'Wardrobe 5',	{ 'bitflag' }				},
+	[19]	=	{ {}, {9,1,6,1},		'Wardrobe 6',	{ 'bitflag' }				},
+	[20]	=	{ {}, {9,1,7,1},		'Wardrobe 7',	{ 'bitflag' }				},
+
+	[21]	=	{ {}, {10,1,0,1},		'Wardrobe 8',	{ 'bitflag' }				},
+	[22]	=	{ {}, {10,1,1,1},		'Recycle Bin',	{ 'bitflag' }				},
+
+	},	--[[ COMPLETE ]]
 
 --	Item Assign ---------------------------------------------------------------
 
 [0x01F] = {
 
-	[1] =   {	{ 'call', 0xFFF }, 							   			},
-	[2] =   {	{},  {4},   	'rdword',	'raw', 		'Quantity'		},
-	[3] =   {	{},  {8},   	'rword',	'item',    	'Item (ID)'		},
-	[4] =   {   {},  {0x0A},	'byte', 	'store',	'Bag', 			},
-	[5] =   {   {},  {0x0B},	'byte',		'raw',  	'Index', 		},
-	[6] =   {   {},  {0x0C},	'byte',		'raw',  	'Flag', 		},
+	[1]		=	{ { 'call', 0xFFF }, 							   			},
+	[2]		=	{ {},  {4,4},			'Quantity'							},
+	[3]		=	{ {},  {8,2},   		'Item (ID)',	{ 'item', 'raw' }	},
+	[4]		=	{ {},  {10},			'Location',		{ 'store' }			},
+	[5]		=	{ {},  {11},			'Index'								},
+	[6]		=	{ {'if', 0},  {12},		'Flag Normal'						},
+	[7]		=	{ {'if', 5},  {12},		'No Drop'							},
+	[8]		=	{ {'if', 15}, {12},		'No Select'							},
+	[9]		=	{ {'if', 19}, {12},		'LinkShell'							},
+	[10]	=	{ {'if', 27}, {12},		'On Puppet'							},
 
 	},	--	[[ COMPLETE ]]
 
@@ -129,57 +152,143 @@ local AllRules = {
 
 [0x020] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2]   =	{  {},  {4},      'rdword',      'raw',  	'Count',     		},
-	[3]   =	{  {},  {8},      'rdword',      'raw',  	'Bazaar GIL', 		},
-	[4]   =	{  {},  {0x0C},   'rword', 	     'item', 	'Item (ID)', 		},
-	[5]   =	{  {},  {0x0E},   'byte', 	     'store',	'Bag', 				},
-	[6]   =	{  {},  {0x0F},   'byte', 	     'raw',  	'Index', 			},
+	[1]		=	{ { 'call', 0xFFF }, 									},
+	[2]		=	{ {},  	{4,4},     	'Count'								},
+	[3]		=	{ {},  	{8,4},      'Bazaar Price'						},
+	[4]		=	{ {},  	{0x0C,2},	'Item (ID)',	{ 'item', 'raw'	} 	},
+	[5]		=	{ {},  	{0x0E},		'Location',		{ 'store' }			},
+	[6]		= 	{ {},  	{0x0F},		'Index'								},
+
+	[7]		=	{ {'if', 0},  {16},	'Flag Normal'						},
+	[8]		=	{ {'if', 5},  {16},	'No Drop'							},
+	[9]		=	{ {'if', 15}, {16},	'No Select'							},
+	[10]	=	{ {'if', 19}, {16},	'LinkShell'							},
+	[11]	=	{ {'if', 27}, {16},	'On Puppet'							},
 
 	},	--[[ COMPLETE ]]
+
 
 --	NPC Action ----------------------------------------------------------------
 
 [0x028] = {
 
-	[1]  =  {  { 'call', 0xFFF },													},
-	[2]  =	{  {}, {4},        'byte',    'raw',     'Data Size'					},
-	[3]  =	{  {}, {5},        'rdword',  'entity',  'Actor'						},
-	[4]  =	{  {}, {9},        'byte',    'raw',     'Target Cnt'					},
-	[5]  =	{  {}, {10,2,4},   'rdword',  'bits',    'Category',  {'set', 1},  1	},
+	[1]		=	{ { 'call', 0xFFF },														},
+	[2]		=	{ {}, {4},			'Data Size'												},
+	[3]		=	{ {}, {5,4},      	'Actor',		{'entity'}								},
+	[4]		=	{ {}, {9},			'Target Cnt'											},
+	[5]		=	{ {}, {10,1,2,4},	'Category',  	{'raw'},	{'set', 1}					},
 
-	[6]  =  {  { 'fswitch', 1 },													},
+	[6]		=	{ { 'fswitch', 1 } },
 
-	[7]  =  {  { 'case', 1 },	     											},
-	[8]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Mode 1' },
-	[9]  =  {  { 'break' }, },  
+	[10]	=	{ { 'case', 1 }, },
+	[11]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Basic Attack (or RA)'			},
+	[12]	=	{ { 'break' }, },  
 
-	[10] =  {  { 'case', 4 },	     											},
-	[11] =	{  {}, {10,6,10}, 'rdword',  'bits',    'Spell', 	},
-	[12]  =  {  { 'break' }, },  
+	[20]	=	{ { 'case', 2 }, },
+	[21]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'RA has Finished' 				},
+	[22]	=	{ { 'break' }, },  
 
-	[13] =  {  { 'case', 8 },	     											},
-	[14] =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Mode 8' },
-	[15]  =  {  { 'break' }, },  
+	[30]	=	{ { 'case', 3 }, },
+	[31]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'WS has Finished' 				},
+	[32]	=	{ { 'break' }, },  
+
+	[40]	=	{ { 'case', 4 }, },
+	[41]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'MA has Finished' 				},
+	[42]	=	{ { 'break' }, },  
+
+	[50]	=	{ { 'case', 5 }, },
+	[51]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Item Use has Finished' 		},
+	[52]	=	{ { 'break' }, },  
+
+	[60]	=	{ { 'case', 6 }, },
+	[61]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'JA has Finished' 				},
+	[62]	=	{ { 'break' }, },  
+
+	[70]	=	{ { 'case', 7 }, },
+	[71]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Start of WS' 					},
+	[72]	=	{ { 'break' }, },  
+
+	[80]	=	{ { 'case', 8 }, },
+	[81]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Start of MA' 					},
+	[82]	=	{ { 'break' }, },  
+
+	[90]	=	{ { 'case', 9 }, },
+	[91]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Start of Item Use'		 		},
+	[92]	=	{ { 'break' }, },  
+
+	[100]	=	{ { 'case', 10 }, },
+	[101]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Start of JA' 					},
+	[102]	=	{ { 'break' }, },  
+
+	[110]	=	{ { 'case', 11 }, },
+	[111]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Mob Ability has Finished'		},
+	[112]	=	{ { 'break' }, },  
+
+	[120]	=	{ { 'case', 12 }, },
+	[121]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Start of RA' 					},
+	[122]	=	{ { 'break' }, },  
+
+	[130]	=	{ { 'case', 13 }, },
+	[131]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Pet Mob Ability has Finished'	},
+	[132]	=	{ { 'break' }, },  
+
+	[140]	=	{ { 'case', 14 }, },
+	[141]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Dance'							},
+	[142]	=	{ { 'break' }, },  
+
+	[150]	=	{ { 'case', 15 }, },
+	[151]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Ward Effusion'					},
+	[152]	=	{ { 'break' }, },  
+
+	[210]	=	{ { 'case', 21 }, },
+	[211]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Quarry'						},
+	[212]	=	{ { 'break' }, },  
+
+	[220]	=	{ { 'case', 22 }, },
+	[221]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Sprint'						},
+	[222]	=	{ { 'break' }, },  
+
+	[310]	=	{ { 'case', 31 }, },	--	LSB ONLY
+	[311]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Magic (MA) Interrupted'		},
+	[312]	=	{ { 'break' }, },  
+
+	[320]	=	{ { 'case', 32 }, },	--	LSB ONLY
+	[321]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Ranged (RA) Interrupted'		},
+	[322]	=	{ { 'break' }, },  
+
+	[330]	=	{ { 'case', 33 }, },	--	LSB ONLY
+	[331]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Mob Ability Start'				},
+	[332]	=	{ { 'break' }, },  
+
+	[350]	=	{ { 'case', 35 }, },	--	LSB ONLY
+	[351]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Mob Ability Interrupted'		},
+	[352]	=	{ { 'break' }, },  
+
+	[370]	=	{ { 'case', 37 }, },	--	LSB ONLY
+	[371]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Raise Menu Selection'			},
+	[372]	=	{ { 'break' }, },  
+
+	[380]	=	{ { 'case', 38 }, },	--	LSB ONLY
+	[381]	=	{ {}, {10},  		'Type', 		{'info'},	{}, 	'Job Ability (JA) Interrupted'	},
+	[382]	=	{ { 'break' }, },  
 	
-	--[7]  =	{  {}, {10,6,16},  'rdword',   'bits',    'Action ID',  {},  2  },
-
-	[16] =  {  { 'end' },          												},
+	[999]	=	{ { 'end' } },
 
 	},	--	PART - Needs flag decode
+
 
 --	Action Message ------------------------------------------------------------
 
 [0x029] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2]  =	{  {}, {4},   'rword',     'eid',     'Actor'                   },
-	[3]  =	{  {}, {8},   'rword',     'eid',     'Target'                  },
-	[4]  =	{  {}, {12},  'rdword',    'raw',     'Param 1'                 },
-	[5]  =	{  {}, {16},  'rdword',    'raw',     'Param 2'                 },
-	[6]  =	{  {}, {20},  'rword',     'raw',     'Actor Index'             },
-	[7]  =	{  {}, {22},  'rword',     'raw',     'Target Index'            },
-	[8]  =	{  {}, {22},  'rword',     'raw',     'Message'                 },
+	[1]		=	{ { 'call', 0xFFF }, 						},
+	[2]		=	{ {}, {4,4},   'Actor'						},
+	[3]		=	{ {}, {8,4},   'Target'						},
+	[4]		=	{ {}, {12,4},  'Param 1'					},
+	[5]		=	{ {}, {16,4},  'Value'						},
+	[6]		=	{ {}, {20,2},  'Actor Index', {'eid'}		},
+	[7]		=	{ {}, {22,2},  'Target Index', {'eid'}		},
+	[8]		=	{ {}, {24,2},  'Message'					},
 
 	},	--[[ COMPLETE ]]
 
@@ -187,59 +296,117 @@ local AllRules = {
 
 [0x037] = {
 
-	[1]   =  {  { 'call', 0xFFF }, 											},
-	[2]   =	 {  {}, {36},      'rword',    'player',  'Player ID'	 },
-	[3]   =	 {  {}, {42},      'byte',     'raw',     ' HP %%'       },
-	[4]   =	 {  {}, {40,1},    'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'Hide Flag'  			},
-	[5]   =	 {  {}, {40,2},    'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'Sleep Flag' 			},
-	[6]   =	 {  {}, {40,4},    'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'Ground Flag'			},
-	[7]   =	 {  {}, {40,8},    'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'CLI Pos Init Flag'   	},
-	[8]   =	 {  {}, {40,16},   'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'LFG Flag'   			},
-	[9]   =	 {  {}, {40,32},   'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'Anonymous Flag'  		},
-	[10]  =	 {  {}, {40,64},   'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'CFH Flag'   			},
-	[11]  =	 {  {}, {40,128},  'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'Away Flag'  			},
-	[12]  =	 {  {}, {41,1},    'byte',     'bool',    'Bit Flag',   {'set', 1},  0,  'Gender Flag'  		},
-	[13]  =	 {  {}, {41,5,3},  'byte',     'bits',    'Choco Index'	},
-	[14]  =	 {  {}, {91},      'byte',     'raw',     'Mount ID'    },
-	[15]  =	 {  {}, {43,5,3},  'byte',     'bits',    'GM Level',   },
-	[16]  =	 {  {}, {44,0,12}, 'rword',    'bits',    'Speed', 		},
-	[17]  =	 {  {}, {45,16},   'byte',     'bool',    'Bit Flag',	{'set', 1},  0,  'Wall Hack' 			},
+	[1]		=	{ { 'call', 0xFFF }, 												},
+	[2]		=	{ {}, {36,4},		'Player ID'										},
+	[3]		=	{ {}, {42},			' HP %%'										},
+	[4]		=	{ {}, {40,1,0,1},	'Hide Flag',			{'bitflag'}  			},
+	[5]		=	{ {}, {40,1,1,1},	'Sleep Flag',			{'bitflag'}  			},
+	[6]		=	{ {}, {40,1,2,1},	'Ground Flag',			{'bitflag'}  			},
+	[7]		=	{ {}, {40,1,3,1},	'CLI Pos Init',			{'bitflag'}  			},
+	[8]		=	{ {}, {40,1,4,1},	'LFG Flag',				{'bitflag'}  			},
+	[9]		=	{ {}, {40,1,5,1},	'Anonymous',			{'bitflag'}  			},
+	[10]	=	{ {}, {40,1,6,1},	'CFH Flag',				{'bitflag'}  			},
+	[11]	=	{ {}, {40,1,7,1},	'Away Flag',			{'bitflag'}  			},
+	
+	[20]	=	{ {}, {41,1,0,1},	'Gender Flag',			{'bitflag'}  			},
+	[21]	=	{ {}, {41,1,5,3},	'Choco Index'									},
+	
+	[30]	=	{ {}, {43,1,0,1},	'POL Flag',				{'bitflag'}  			},
+	[31]	=	{ {}, {43,1,1,1},	'Link Shell',			{'bitflag'}  			},
+	[32]	=	{ {}, {43,1,2,1},	'Link Dead',			{'bitflag'}  			},
+	[33]	=	{ {}, {43,1,3,1},	'Target Off',			{'bitflag'}  			},
+	[34]	=	{ {}, {43,1,5,3},	'GM Level'										},
+	
+	[40]	=	{ {}, {91},      	'Mount ID'    									},
+	[41]	=	{ {}, {44,2,0,12},	'Speed', 										},
+	[42]	=	{ {}, {45,1,4,1},	'Wall Hack',			{'bitflag'}  			},
+	[43]	=	{ {}, {45,1,5,1},	'Freeze Flag',			{'bitflag'}  			},
+	[44]	=	{ {}, {45,1,7,1},	'Invisible',			{'bitflag'}  			},
+	[45]	=	{ {}, {46,1,0,1},	'Gate Breach',			{'bitflag'}  			},
 
-	},
+	[46]	=	{ {}, {46,2,1,8},	'Speed Base'									},
+	[47]	=	{ {}, {47,1,5,1},	'Bazaar Flag',			{'bitflag'}  			},
+	[48]	=	{ {}, {47,1,6,1},	'Charm Flag',			{'bitflag'}  			},
+	[49]	=	{ {}, {47,1,7,1},	'GM Icon Flag',			{'bitflag'}  			},
+
+	[50]	=	{ {}, {0x30,4,3,16},'Pet Index'										},
+	[51]	=	{ {}, {0x30,4,20,1},'TERROR',				{'bitflag'}  			},
+
+	[60]	=	{ {}, {0x38,1,3,1},	'New Player',			{'bitflag'}  			},
+	[61]	=	{ {}, {0x38,1,4,1},	'Mentor Flag',			{'bitflag'}  			},
+	[62]	=	{ {}, {0x39},		'Ballista Team'									},
+
+	[70]	=	{ {}, {0x58,1,0,4},	'GEO Element',			{'geo'}					},
+	[71]	=	{ {}, {0x58,1,4,2},	'GEO Size'										},
+	[72]	=	{ {}, {0x58,1,6,1},	'GEO Flag',				{'bitflag'}  			},
+	[73]	=	{ {}, {0x58,1,7,1},	'Job Master',			{'bitflag'}  			},
+
+	},	--[[ COMPLETE ]]
 
 --	Job Info Extra ------------------------------------------------------------
 
 [0x044] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 												},
+	[1]		=	{ { 'call', 0xFFF } },
 
-	[2]  =  {  { 'switch', 4, 1},										    	},
+	[2]		=	{ { 'switch', 4, 1} },
 
-	[3]  =  {  { 'case', 16 },	     											},
-	[4]  =	{  {}, {4},  'byte',   'raw',     'Mode (BLU)'          			},
+	[3]		=	{ { 'case', 16 },	     											},
+	[4]		=	{ {}, {4},					'Mode (BLU)'							},
 
-	[5]  =  {  { 'loop', 20, 1, 0 },                        					},
-	[6]  =	{  { 'ifnot', 0 },  {8},  'byte',    'bluspell',    'BLU Spell'		},
-	[7]  =  {  { 'end' },                                   					},
+	[5]		=	{ { 'loop', 20, 1, 0 },                        						},
+	[6]		=	{ { 'ifnot', 0 },  {8},  	'BLU Spell',    {'bluspell'}			},
+	[7]		=	{ { 'end' },                                   						},
 
-	[8]  =  {  { 'break' },          											},
+	[8]		=	{ { 'break' },          											},
 
-	[9]  =  {  { 'case', 18 },	     											},
-	[10] =	{  {}, {4},  'byte',   'raw',     'Mode (PUP)'          			},
-	[11]  =	{  { '@', 100 }, {8},  'byte',    'raw',     'Puppet Head',  {},  5 },
-	[12]  =	{  { '@', 100 }, {9},  'byte',    'raw',     'Puppet Body',  {},  6 },
+	[9]		= 	{ { 'case', 18 },	     											},
+	[10]	=	{ {}, {4},					'Mode (PUP)'							},
+	[11]	=	{ {}, {8}, 	 				'Puppet Head',  	{'puppet'}			},
+	[12]	=	{ {}, {9},  				'Puppet Body',  	{'puppet'}			},
 
-	[13]  = {  { 'loop', 12, 1, 0 },                        					},
-	[14]  =	{  { 'ifnot', 0 },  {10}, 'byte', 'attach',    'Attachment'			},
-	[15]  = {  { 'end' },                                   					},
+	[13]	=	{ { 'loop', 12, 1, 0 } },
+	[14]	=	{ { 'ifnot', 0 },  {10},	'Attachment',		{'attach'}			},
+	[15]	=	{ { 'end' } },
 
-	[16] =  {  { 'break' },          											},
+	[16]	=	{ {}, {0x68,2}, 			'Puppet HP'								},
+	[17]	=	{ {}, {0x6A,2},				'Max HP'								},
+	[18]	=	{ {}, {0x6C,2}, 			'Puppet MP'								},
+	[19]	=	{ {}, {0x6E,2}, 			'Max MP'								},
+	[20]	=	{ {}, {0x70,2}, 			'Melee Min'								},
+	[21]	=	{ {}, {0x72,2}, 			'Melee Max'								},
+	[22]	=	{ {}, {0x74,2}, 			'RA Min'								},
+	[23]	=	{ {}, {0x76,2}, 			'RA Max'								},
+	[24]	=	{ {}, {0x78,2}, 			'Magic Min'								},
+	[25]	=	{ {}, {0x7A,2}, 			'Magic Max'								},
 
-	[17] =  {  { 'default' },	     											},
-	[18] =	{  {}, {4},  'byte',   'raw',     'Mode (Var)'	      				},
-	[19] =  {  { 'break' },          											},
+	[30]	=	{ {}, {0x80,2}, 			'Basic STR'								},
+	[31]	=	{ {}, {0x82,2}, 			'STR MOD'								},
+	[32]	=	{ {}, {0x84,2}, 			'Basic DEX'								},
+	[33]	=	{ {}, {0x86,2}, 			'DEX MOD'								},
+	[34]	=	{ {}, {0x88,2}, 			'Basic VIT'								},
+	[35]	=	{ {}, {0x8A,2}, 			'VIT MOD'								},
+	[36]	=	{ {}, {0x8C,2}, 			'Basic AGI'								},
+	[37]	=	{ {}, {0x8E,2}, 			'AGI MOD'								},
+	[38]	=	{ {}, {0x90,2}, 			'Basic INT'								},
+	[39]	=	{ {}, {0x92,2}, 			'INT MOD'								},
+	[40]	=	{ {}, {0x94,2}, 			'Basic MND'								},
+	[41]	=	{ {}, {0x96,2}, 			'MND MOD'								},
+	[42]	=	{ {}, {0x98,2}, 			'Basic CHR'								},
+	[43]	=	{ {}, {0x9A,2}, 			'CHR MOD'								},
+	[44]	=	{ {}, {0x9C,2}, 			'Elem Capacity'							},
 
-	[20] =  {  { 'end' },          												},
+	[89]	=	{ { 'break' } },
+
+	[90]	=	{ { 'default' } },
+	[91]	=	{ {}, {4},  'Mode (Var)'	      				},
+	[92]	=	{ {}, {8}, 	'MON Species'						},
+	[93]	=	{ { 'loop', 12, 2, 0 } },
+	[94]	=	{ { 'ifnot', 0 },  {12,2},	'Instinct'								},
+	[95]	=	{ { 'end' } },
+	[96]	=	{ { 'break' } },
+
+	[99]	=	{ { 'end' } },
 
 	},
 
@@ -247,67 +414,67 @@ local AllRules = {
 
 [0x04C] = {
 
-	[1]  = { { 'call', 0xFFF }, 							    		},
-	[2]  = { {},  {4},  'byte',		'raw',		'Command'				},
-	[3]  = { {},  {5},  'byte',		'raw',		'AucWorkIndex'			},
-	[4]  = { {},  {6},  'byte',		'raw',		'Result'				},
-	[5]  = { {},  {7},  'byte',		'raw',		'ResultStatus'			},
+	[1]		=	{ { 'call', 0xFFF }, 					},
+	[2]		=	{ {},  {4},  	'Command'				},
+	[3]		=	{ {},  {5},  	'AucWorkIndex'			},
+	[4]		=	{ {},  {6},  	'Result'				},
+	[5]		=	{ {},  {7},  	'ResultStatus'			},
 
-	},
+	},	--[[ COMPLETE ]]
 
 --	Quest / Mission Log -------------------------------------------------------
 
 [0x056] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 													},
+	[1]		=	{ { 'call', 0xFFF } },
 
-	[2]  =  {  { 'switch', 0x24, 2},										    		},
+	[2]		=	{ { 'switch', 0x24, 2} },
 
-	[3]  =  {  { 'case', 0xFFFF },	     												},
-	[4]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Current Mission' },
-	[5]  =  {  { 'break' },          											},
+	[3]		=	{ { 'case', 0xFFFF } },
+	[4]		=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'Current Mission' },
+	[5]		=	{ { 'break' } },
 
-	[6]  =  {  { 'case', 0x00D0 },	     												},
-	[7]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Completed Mission' },
-	[8]  =  {  { 'break' },          											},
+	[6]		=	{ { 'case', 0x00D0 } },
+	[7]		=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'Completed Mission' },
+	[8]		=	{ { 'break' } },
 
-	[9]  =  {  { 'case', 0x0080 },	     												},
-	[10]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Active ToaU/WotG Mission' },
-	[11] =  {  { 'break' },          											},
+	[9]		=	{ { 'case', 0x0080 } },
+	[10]	=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'Active ToaU/WotG Mission' },
+	[11]	=	{ { 'break' } },
 
-	[12] =  {  { 'case', 0x00D8 },	     												},
-	[13]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Completed ToaU/WotG Mission' },
-	[14] =  {  { 'break' },          											},
+	[12]	=	{ { 'case', 0x00D8 } },
+	[13]	=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'Completed ToaU/WotG Mission' },
+	[14]	=	{ { 'break' } },
 
-	[15] =  {  { 'case', 0x00C0 },	     												},
-	[16]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Completed Assault Mission' },
-	[17] =  {  { 'break' },          											},
+	[15]	=	{ { 'case', 0x00C0 } },
+	[16]	=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'Completed Assault Mission' },
+	[17]	=	{ { 'break' } },
 
-	[18] =  {  { 'case', 0x0030 },	     												},
-	[19]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Campaign - One' },
-	[20] =  {  { 'break' },          											},
+	[18]	=	{ { 'case', 0x0030 } },
+	[19]	=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'Campaign - One' },
+	[20]	=	{ { 'break' } },
 
-	[21] =  {  { 'case', 0x0038 },	     												},
-	[22]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'Campaign - Two' },
-	[23] =  {  { 'break' },          											},
+	[21]	=	{ { 'case', 0x0038 } },
+	[22]	=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'Campaign - Two' },
+	[23]	=	{ { 'break' } },
 
-	[24]  =  {  { 'default' },	     											},
-	[25]  =	{  {}, {0x24},   'rword',   'info',    'Type', 		{},  0,	'General Missions' },
-	[26]  =  {  { 'break' },          											},
+	[24]	=	{ { 'default' } },
+	[25]	=	{ {}, {0x24,2},   'Type', 		{'info'},  {}, 'General Missions' },
+	[26]	=	{ { 'break' } },
 
-	[27]  =  {  { 'end' },          												},
+	[27]	=	{ { 'end' } },
 
 	},
-	
+
 --	Weather Change ------------------------------------------------------------
 
 [0x057] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2]  =	{  {}, {-1},   'byte',   'info',    'ERROR', 		{},  0,	'This date seems to be wrong' },
-	[3]  =	{  {}, {4},   'rdword',  'vdate',   'Change Time'             },
-	[4]  =	{  {}, {8},   'rword',   'raw',     'New Weather',  {},  4    },
-	[5]  =	{  {}, {10},  'rword',   'raw',     'Transition'              },
+	[1]		=	{ { 'call', 0xFFF }, 							},
+	[2]		=	{ {}, {-1},		'NOTE',			{'info'},	{},	'This date seems to be wrong'	},
+	[3]		=	{ {}, {4,4},	'Change Time',	{'vdate'}		},
+	[4]		=	{ {}, {8,2},	'New Weather',	{'weather'}		},
+	[5]		=	{ {}, {10,2},	'Transition'					},
 
 	},	--[[ COMPLETE ]]
 
@@ -315,142 +482,171 @@ local AllRules = {
 
 [0x058] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 											},
-	[2]  =	{  {}, {4},   'rdword',    'eid',     'ID'                      },
-	[3]  =	{  {}, {12},  'rword',     'raw',     'Index'                   },
-	[4]  =	{  {}, {8},   'rdword',    'entity',  'Target ID'               },
-	[5]  =	{  {}, {14},  'rword',     'raw',     'Target Index'            },
+	[1]		=	{ { 'call', 0xFFF }, 						},
+	[2]		=	{ {}, {4,4},   'ID',    	{'eid'}			},
+	[3]		=	{ {}, {12.2},  'Index'                   	},
+	[4]		=	{ {}, {8,4},   'Target',    {'entity'}		},
+	[5]		=	{ {}, {14,2},  'Target Index'            	},
 
 	},	--[[ COMPLETE ]]
 
+	
 --	Skills Update -------------------------------------------------------------
 
 [0x062] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 									},
+	[1]		=	{  { 'call', 0xFFF }, 					},
 
-	[2]  =	{  {}, {-1},   'byte',   'info',    'WEAPONS', 		{},  0,	'Values >= 0x8000 Are Capped' },
+	[2]		=	{  {}, {-1},		'WEAPONS', 	{'info'},  {},	'Values >= 0x8000 Are Capped' },
 
-	[3]  =	{  {}, {0x82},  'rword',  'raw',     'H-2-H'            	},
-	[4]  =	{  {}, {0x84},  'rword',  'raw',     'Dagger' 	        },
-	[5]  =	{  {}, {0x86},  'rword',  'raw',     'Sword'		        },
-	[6]  =	{  {}, {0x88},  'rword',  'raw',     'G-Sword'           },
-	[7]  =	{  {}, {0x8A},  'rword',  'raw',     'Axe'		        },
-	[8]  =	{  {}, {0x8C},  'rword',  'raw',     'G-Axe' 		    },
-	[9]  =	{  {}, {0x8E},  'rword',  'raw',     'Scythe'            },
-	[10] =	{  {}, {0x90},  'rword',  'raw',     'Polearm'           },
-	[11] =	{  {}, {0x92},  'rword',  'raw',     'Katana'            },
-	[12] =	{  {}, {0x94},  'rword',  'raw',     'G-Katana'          },
-	[13] =	{  {}, {0x96},  'rword',  'raw',     'Club'            	},
-	[14] =	{  {}, {0x98},  'rword',  'raw',     'Staff'           	},
+	[3]		=	{  {}, {0x82,2},	'H-2-H'            	},
+	[4]		=	{  {}, {0x84,2},	'Dagger' 	        },
+	[5]		=	{  {}, {0x86,2},	'Sword'		        },
+	[6]		=	{  {}, {0x88,2},	'G-Sword'           },
+	[7]		=	{  {}, {0x8A,2},	'Axe'		        },
+	[8]		=	{  {}, {0x8C,2},	'G-Axe' 		    },
+	[9]		=	{  {}, {0x8E,2},	'Scythe'            },
+	[10]	=	{  {}, {0x90,2},	'Polearm'           },
+	[11]	=	{  {}, {0x92,2},	'Katana'            },
+	[12]	=	{  {}, {0x94,2},	'G-Katana'          },
+	[13]	=	{  {}, {0x96,2},	'Club'            	},
+	[14]	=	{  {}, {0x98,2},	'Staff'           	},
 
-	[15] =	{  {}, {-1},   'byte',   'info',    'PUPPETS', 		{},  0,	'Values >= 0x8000 Are Capped' },
+	[15]	=	{  {}, {-1},		'PUPPETS', 	{'info'},  {},	'Values >= 0x8000 Are Capped' },
 
-	[16] =	{  {}, {0xAC},  'rword',  'raw',     'Auto Melee'     	},
-	[17] =	{  {}, {0xAE},  'rword',  'raw',     'Auto Ranged'     	},
-	[18] =	{  {}, {0xB0},  'rword',  'raw',     'Auto Magic'      	},
+	[16]	=	{  {}, {0xAC,2},	'Auto Melee'     	},
+	[17]	=	{  {}, {0xAE,2},	'Auto Ranged'     	},
+	[18]	=	{  {}, {0xB0,2},	'Auto Magic'      	},
 
-	[19] =	{  {}, {-1},    'byte',   'info',    'SKILLS', 		{},  0,	'Values >= 0x8000 Are Capped' },
+	[19]	=	{  {}, {-1},		'SKILLS', 	{'info'},  {},	'Values >= 0x8000 Are Capped' },
 
-	[20] =	{  {}, {0xB2},  'rword',  'raw',     'Archery'      	},
-	[21] =	{  {}, {0xB4},  'rword',  'raw',     'Marksmanship'    	},
-	[22] =	{  {}, {0xB6},  'rword',  'raw',     'Throwing'      	},
-	[23] =	{  {}, {0xB8},  'rword',  'raw',     'Guarding'      	},
-	[24] =	{  {}, {0xBA},  'rword',  'raw',     'Evasion'      	},
-	[25] =	{  {}, {0xBC},  'rword',  'raw',     'Shield'      		},
-	[26] =	{  {}, {0xBE},  'rword',  'raw',     'Parrying'      	},
-	[27] =	{  {}, {0xC0},  'rword',  'raw',     'Divine'      		},
+	[20]	=	{  {}, {0xB2,2},	'Archery'      		},
+	[21]	=	{  {}, {0xB4,2},	'Marksmanship'    	},
+	[22]	=	{  {}, {0xB6,2},	'Throwing'      	},
+	[23]	=	{  {}, {0xB8,2},	'Guarding'      	},
+	[24]	=	{  {}, {0xBA,2},	'Evasion'      		},
+	[25]	=	{  {}, {0xBC,2},	'Shield'      		},
+	[26]	=	{  {}, {0xBE,2},	'Parrying'      	},
 
-	[28] =	{  {}, {-1},   'byte',   'info',     'MAGIC', 		{},  0,	'Values >= 0x8000 Are Capped' },
+	[27]	=	{  {}, {-1},		'MAGIC', 	{'info'},  {},	'Values >= 0x8000 Are Capped' },
 
-	[29] =	{  {}, {0xC2},  'rword',  'raw',     'Healing'      	},
-	[30] =	{  {}, {0xC4},  'rword',  'raw',     'Enhancing'      	},
-	[31] =	{  {}, {0xC6},  'rword',  'raw',     'Enfeebling'      	},
-	[32] =	{  {}, {0xC8},  'rword',  'raw',     'Elemental'      	},
-	[33] =	{  {}, {0xCA},  'rword',  'raw',     'Dark'      		},
-	[34] =	{  {}, {0xCC},  'rword',  'raw',     'Summoning'      	},
-	[35] =	{  {}, {0xCE},  'rword',  'raw',     'Ninjutsu'      	},
-	[36] =	{  {}, {0xD6},  'rword',  'raw',     'Blue'      		},
+	[28]	=	{  {}, {0xC0,2},	'Divine'      		},
+	[29]	=	{  {}, {0xC2,2},	'Healing'      		},
+	[30]	=	{  {}, {0xC4,2},	'Enhancing'      	},
+	[31]	=	{  {}, {0xC6,2},	'Enfeebling'      	},
+	[32]	=	{  {}, {0xC8,2},	'Elemental'      	},
+	[33]	=	{  {}, {0xCA,2},	'Dark'      		},
+	[34]	=	{  {}, {0xCC,2},	'Summoning'      	},
+	[35]	=	{  {}, {0xCE,2},	'Ninjutsu'      	},
+	[36]	=	{  {}, {0xD6,2},	'Blue'      		},
 
-	[37] =	{  {}, {-1},   'byte',   'info',     'MUSIC', 		{},  0,	'Values >= 0x8000 Are Capped' },
+	[37]	=	{  {}, {-1},		'MUSIC', 	{'info'},  {},	'Values >= 0x8000 Are Capped' },
 
-	[38] =	{  {}, {0xD0},  'rword',  'raw',     'Singing'      	},
-	[39] =	{  {}, {0xD2},  'rword',  'raw',     'String'      		},
-	[40] =	{  {}, {0xD4},  'rword',  'raw',     'Wind'      		},
+	[38]	=	{  {}, {0xD0,2},	'Singing'      		},
+	[39]	=	{  {}, {0xD2,2},	'String'      		},
+	[40]	=	{  {}, {0xD4,2},	'Wind'      		},
 
-	[41] =	{  {}, {-1},   'byte',   'info',     'CRAFT', 		{},  0,	'Contains Cap / Rank / Level' },
+	[41]	=	{  {}, {-1},   		'CRAFT', 	{'info'},  {},	'Contains Cap / Rank / Level' },
 
-	[42] =	{  {}, {0xE0},  'rword',  'craft',   'Fishing'      	},
-	[43] =	{  {}, {0xE2},  'rword',  'craft',   'Woodworking'      },
-	[44] =	{  {}, {0xE4},  'rword',  'craft',   'Smithing'      	},
-	[45] =	{  {}, {0xE6},  'rword',  'craft',   'Goldsmithing'     },
-	[46] =	{  {}, {0xE8},  'rword',  'craft',   'Clothcraft'      	},
-	[47] =	{  {}, {0xEA},  'rword',  'craft',   'Leathercraft'     },
-	[48] =	{  {}, {0xEC},  'rword',  'craft',   'Bonecraft'      	},
-	[49] =	{  {}, {0xEE},  'rword',  'craft',   'Alchemy'      	},
-	[50] =	{  {}, {0xF0},  'rword',  'craft',   'Cooking'      	},
+	[42]	=	{  {}, {0xE0,2},	'Fishing'      		},
+	[43]	=	{  {}, {0xE2,2},	'Woodworking'      	},
+	[44]	=	{  {}, {0xE4,2},	'Smithing'      	},
+	[45]	=	{  {}, {0xE6,2},	'Goldsmithing'     	},
+	[46]	=	{  {}, {0xE8,2},	'Clothcraft'      	},
+	[47]	=	{  {}, {0xEA,2},	'Leathercraft'     	},
+	[48]	=	{  {}, {0xEC,2},	'Bonecraft'      	},
+	[49]	=	{  {}, {0xEE,2},	'Alchemy'      		},
+	[50]	=	{  {}, {0xF0,2},	'Cooking'      		},
 
-	[51] =	{  {}, {-1},   'byte',   'info',     'MISC', 		{},  0,	'Values >= 0x8000 are capped' },
+	[51]	=	{  {}, {-1},		'MISC', 	{'info'},  {},	'Values >= 0x8000 Are Capped' },
 
-	[52] =	{  {}, {0xF2},  'rword',  'raw',     'Synergy'      	},
-	[53] =	{  {}, {0xF4},  'rword',  'raw',     'Riding'      		},
+	[52]	=	{  {}, {0xF2,2},	'Synergy'      		},
+	[53]	=	{  {}, {0xF4,2},	'Riding'      		},
 
 	},	--[[ COMPLETE ]]
 
 
---	Job Info Extra ------------------------------------------------------------
+--	Set Update ----------------------------------------------------------------
 
 [0x063] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 													},
+	[1]		=	{ { 'call', 0xFFF } },
 
-	[2]  =  {  { 'switch', 4, 1},										    		},
+	[2]		=	{ { 'switch', 4, 1} },
 
-	[3]  =  {  { 'case', 2 },										    		},
-	[4]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Merits' 	},
-	[5]  =  {  { 'break', },										    			},
+	--	Merit Points ----------------------------------------------------------
 
-	[6]  =  {  { 'case', 3 },										    		},
-	[7]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Monstrosity 1' 	},
-	[8]  =  {  { 'break', },										    			},
+	[20]	=	{ { 'case', 2 } },
+	[21]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Merits' 	},
+	[22]	=	{ {}, {8,2},   		'Limit Points'	},
+	[23]	=	{ {}, {10,2,0,6},  	'Merit Points'	},
+	[24]	=	{ {}, {11,1,5,1}, 	'Lv 75+, Has KI',	{'bitflag'}	},
+	[25]	=	{ {}, {11,1,6,1}, 	'Merit Mode',		{'bitflag'}	},
+	[26]	=	{ {}, {11,1,7,1}, 	'Enabled',			{'bitflag'}	},
+	[27]	=	{ {}, {12},   		'Max Merits'	},
+	[28]	=	{ { 'break' } },
 
-	[9]  =  {  { 'case', 4 },										    		},
-	[10]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Monstrosity 2' 	},
-	[11]  =  {  { 'break', },										    			},
+	---------------------------------------------------------------------------
 
-	[12]  =  {  { 'case', 5 },										    		},
-	[13]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Job Points' 	},
-	[14]  =  {  { 'break', },										    			},
+	[30]	=	{ { 'case', 3 } },
+	[31]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Monstrosity 1' 	},
+	[32]	=	{ { 'break' } },
 
-	[15]  =  {  { 'case', 6 },										    		},
-	[16]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Homepoints' 	},
-	[17]  =  {  { 'break', },										    			},
+	[40]	=	{ { 'case', 4 } },
+	[41]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Monstrosity 2' 	},
+	[42]	=	{ { 'break' } },
 
-	[18]  =  {  { 'case', 7 },										    		},
-	[19]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Unity' 	},
-	[20]  =  {  { 'break', },										    			},
+	--	Job Points ------------------------------------------------------------
 
-	--	Status Icons ---------------------------------------------------------------
+	[50]	=	{ { 'case', 5 } },
+	[51]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Job Points (listed per Job)' 	},
+	[52]	=	{ {}, {8,1,0,1},	'Has Access',	{'bitflag'}	},
 
-	[21] = { { 'case', 9 },										    		},
-	[22] = { {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Status Icons' 	},
+	[53]	= 	{ { 'loop', 24, 6, 0 } },
+	[54]	=	{ { 'useflag', -1},  {-1}, 	'Job',	{'job'}	},
+	[55]	=	{ { },  {12,2}, 			'Cap Points'	},
+	[56]	=	{ { },  {14,2}, 			'Current JP'	},
+	[57]	=	{ { },  {16,2}, 			'JP Spent'		},
+	[58]	=	{ { 'end' } },
 
-	[23]  = {  { 'loop', 32, -1, 0 },                        					},
-	[24]  =	{  { 'ifnot', 255 },  {0x08},      'rword',  'status',  'Status'		},
-	[25]  =	{  { 'ifnot', 0 },    {0x48},      'rdword', 'time',    	'Expires'		},
-	[26]  = {  { 'end' },                                   					},
+	[59]	=	{ { 'break' } },
 
-	[27] = { { 'break', },										    			},
+	---------------------------------------------------------------------------
 
-	[28]  =  {  { 'case', 10 },										    		},
-	[29]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Unknown' 	},
-	[30]  =  {  { 'break', },										    			},
+	[77]	=	{ { 'case', 6 } },
+	[78]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Homepoints' 	},
+	[79]	=	{ { 'break' } },
 
-	[31]  =  {  { 'default', 2 },										    		},
-	[32]  =	{  {}, {-1},   'byte',   'info',     'Mode', 		{},  0,	'Invalid' 	},
-	[33]  =  {  { 'break', },										    			},
+	[80]	=	{ { 'case', 7 } },
+	[81]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Unity' 	},
+	[82]	=	{ { 'break' } },
 
-	[34]  =  {  { 'end' },										    				},
+	--	Status Icons ----------------------------------------------------------
+
+	[90]	= 	{ { 'case', 9 } },
+	[91]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Status Icons' 	},
+
+	[92]	= 	{ { 'loop', 32, 2, 0 } },
+	[93]	=	{ { 'ifnot', 255 },  {0x08,2}, 		'Status',	{'status'}				},
+	[94]	=	{ { 'end' } },
+
+	[95]	= 	{ { 'loop', 32, 4, 0 } },
+	[96]	=	{ { 'ifnot', 0 },    {0x48,4},      'Timestamp'		},
+	[97]	=	{ { 'end' } },
+
+	[98]	=	{ { 'break' } },
+
+	---------------------------------------------------------------------------
+
+	[100]	=	{ { 'case', 10 } },
+	[101]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Unknown' 	},
+	[102]	=	{ { 'break' } },
+
+	[110]	=	{ { 'default', 2 } },
+	[111]	=	{ {}, {-1},   		'Mode', 		{'info'},  	{}, 	'Invalid' 	},
+	[112]	=	{ { 'break' } },
+
+	[999]	=	{ { 'end' } },
 
 },
 
@@ -458,41 +654,45 @@ local AllRules = {
 
 [0x067] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 													},
+	[1]		=	{ { 'call', 0xFFF }, 														},
+	[2]		=	{ {}, {4,1,0,6},	'Mode',  			{'raw'},	{'set', 1}				},
+	[3]		=	{ { 'fswitch', 1},						   									},
 
-	[2]  =  {  { 'switch', 4, 1},										    		},
+	[20]	=	{ { 'case', 2 },	     													},
+	[21]	=	{ {}, {-1},			'Contents',			{'info'},   {}, 'Mode 2 (Player)'	},
+	[22]	=	{ {}, {6,2},		'Target ID' 	         								},
+	[23]	=	{ {}, {8,4},		'Player ID' 	         								},
+	[24]	=	{ {}, {0x0C,2},		'Fellow ID' 	         								},
+	[25]	=	{ {}, {0x10,1,1,1},	'Camp. Battle',		{ 'bitflag' }						},
+	[26]	=	{ {}, {0x10,1,2,1},	'Level Sync',		{ 'bitflag' }						},
+	[27]	=	{ {}, {0x26},		'Lvl Restrict' 		   									},
+	[28]	=	{ {}, {0x13,2},		'Mount Sub'     										},
+	[29]	=	{ {}, {0x18,4},		'Field Choco'   	  									},
+	[30]	=	{ {}, {0x18},		'Choco Head'											},
+	[31]	=	{ {}, {0x19},  		'Choco Feet'											},
+	[32]	=	{ {}, {0x1A},  		'Choco Tail'											},
+	[33]	=	{ {}, {0x1B},  		'Choco Colour'											},
+	[34]	=	{ {}, {0x27},		'Floor Change'  	  									},
+	[35]	=	{ { 'break' },          													},
 
-	[3]  =  {  { 'case', 2 },	     												},
-	[4]  =	{  {}, {4},  		'byte',   	'raw',     'Mode (Player)'          	},
-	[5]  =	{  {}, {6},  		'rword',  	'raw',     'Target ID' 	         		},
-	[6]  =	{  {}, {8},  		'rdword', 	'raw',     'Player ID' 	         		},
-	[7]  =	{  {}, {0x0c},  	'rword',  	'raw',     'Fellow ID' 	         		},
-	[8]  =	{  {}, {0x10,4},	'byte',   	'bool',    'Bit Flag',   {'set', 1},  0,  'Level Sync' 	},
-	[9]  =	{  {}, {0x26},  	'byte',   	'raw',     'Lvl Restrict' 		   		},
-	[10]  =	{  {}, {0x13}, 		'rword',  	'raw',     'Mount Sub'     				},
-	[11]  =	{  {}, {0x18}, 		'rdword', 	'raw',     'Field Choco'   	  			},
+	[60]	=	{ { 'case', 3 },	     							},
+	[61]	=	{ {}, {-1},			'Contents',			{'info'},  {}, 'Mode 3 (NPC/Trust)'	},
+	[62]	=	{ {}, {6,2},		'Actor ID' 	         									},
+	[63]	=	{ {}, {8,4},		'Unique ID' 	         								},
+	[64]	=	{ {}, {0x0C,2},		'Trust Owner' 	         								},
+	[65]	=	{ {}, {0x14,4},		'Name Flags' 	         								},
+	[66]	=	{ {}, {0x18,24},	'Name',				{'string'}							},
+	[67]	=	{ { 'break' },          							},
 
-	[12]  =	 { {}, {0x18,0,3},  'rdword',   'bits',    'Choco Head'				},
-	[13]  =	 { {}, {0x18,3,3},  'rdword',   'bits',    'Choco Feet'				},
-	[14]  =	 { {}, {0x18,6,3},  'rdword',   'bits',    'Choco Tail'				},
-	[15]  =	 { {}, {0x18,9,3},  'rdword',   'bits',    'Choco Colour'			},
+	[80]	=	{ { 'case', 4 },	     							},
+	[81]	=	{ {}, {4},			'Mode (Pet)'          			},
+	[82]	=	{ { 'break' },          							},
 
-	[16]  =	{  {}, {0x27}, 		'byte', 	'raw',     'Floor Change'  	  		},
-	[17]  =  {  { 'break' },          											},
+	[90]	=	{ { 'default' },	     							},
+	[91]	=	{ {}, {4},			'Mode (???)'	   				},
+	[92]	=	{ { 'break' },          							},
 
-	[18]  =  {  { 'case', 3 },	     											},
-	[19]  =	{  {}, {4},  'byte',   'raw',     'Mode (NPC)'          			},
-	[20]  =  {  { 'break' },          											},
-
-	[21]  =  {  { 'case', 4 },	     											},
-	[22]  =	{  {}, {4},  'byte',   'raw',     'Mode (Pet)'          			},
-	[23]  =  {  { 'break' },          											},
-
-	[24]  =  {  { 'default' },	     											},
-	[25]  =	{  {}, {4},  'byte',   'raw',     'Mode (???)'		   				},
-	[26]  =  {  { 'break' },          											},
-
-	[27]  =  {  { 'end' },          												},
+	[999]	=	{ { 'end' },          								},
 
 	},
 
@@ -500,31 +700,18 @@ local AllRules = {
 
 [0x068] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 									},
-	[2]  =	{  {}, {4,0,6},    'rword',    'bits',    'Type'		},
-	[3]  =	{  {}, {4,6,10},   'rword',    'bits',    'Length'		},
-	[4]  =	{  {}, {6},        'rword',    'player',  'Owner Index'	},
-	[5]  =	{  {}, {8},        'rword',    'player',  'Owner ID'	},
-	[6]  =	{  {}, {12},       'rword',    'raw',     'Pet Index'	},
-	[7]  =	{  {}, {14},       'byte',     'raw',     ' HP %%'		},
-	[8]  =	{  {}, {15},       'byte',     'raw',     ' HP %%'		},
-	[9]  =	{  {}, {16},       'rword',    'raw',     'TP'			},
-	[10] =	{  {}, {20},       'rdword',   'entity',  'Target ID'	},
-	[11] =	{  {}, {24},       'byte',     'string',  'Pet Name'	},
-
-	},	--	[[ COMPLETE ]]
-
---	Job Points ----------------------------------------------------------------
-
-[0x08D] = {
-
-	[1]  =  {  { 'call', 0xFFF }, 									},
-	[2] =   {  { 'loop', 10, 4, 0 },                		        },
-	[3]  =	{  {}, {4},    'rdword',  'jpoint',  'Job Point'	    },
-	[4] =   {  { 'end' },                                   		},
-	[5] =   {  { 'loop', 10, 4, 0 },                		        },
-	[6]  =	{  {}, {0x54}, 'rdword',  'jpoint',  'Job Point'	    },
-	[7] =   {  { 'end' },                                   		},
+	[1]		=	{ { 'call', 0xFFF }, 											},
+	[2]		=	{ {}, {4,2,0,6},  'Type'										},
+	[3]		=	{ {}, {4,2,6,10}, 'Length'										},
+	[4]		=	{ {}, {6,2},      'Owner Index',	{ 'eid' }  					},
+	[5]		=	{ {}, {8,2},      'Owner ID',				 					},
+	[6]		=	{ {}, {12,2},     'Pet Index'									},
+	[7]		=	{ {}, {14},		  ' HP %%'										},
+	[8]		=	{ {}, {15},		  ' HP %%'										},
+	[9]		=	{ {}, {16,2},     'TP'											},
+	[10]	=	{ { 'ifnot', 0}, {20,4}, 'Target ID',	{ 'entity', 'raw' }		},
+	[11]	=	{ { 'if',    0}, {20,4}, 'No Target',							},
+	[12]	=	{ {}, {24,20},	  'Pet Name',			{ 'string' }			},
 
 	},	--	[[ COMPLETE ]]
 
@@ -532,13 +719,27 @@ local AllRules = {
 
 [0x08C] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 										},
-	[2]  =	{  {}, {0x04}, 'rword',  'raw',  'Point Count'	    		},
-	[3]  =  {  { 'loop', 31, 4, 0 },                		        	},
-	[4]  =	{  {}, {0x08}, 'rword',  'merit', 	'Merit ID'	    		},
-	[5]  =	{  { 'ifnot', 0 }, {0x0B}, 'byte',   'raw', 	'Level'	    },
-	[6]  =	{  { 'ifnot', 0 }, {0x0A}, 'byte',   'raw', 	'Next'	    },
-	[7]  =  {  { 'end' },                                   			},
+	[1]		=	{ { 'call', 0xFFF }, 									},
+	[2]		=	{ {}, {0x04,2},				'Point Count'	    		},
+	[3]		=	{ { 'loop', 31, 4, 0 },                		        	},
+	[4]		=	{ {}, {0x08,2},				'Merit ID',  	{'merit'}	},
+	[5]		=	{ { 'ifnot', 0 }, {0x0B},	'Level'	    				},
+	[6]		=	{ { 'ifnot', 0 }, {0x0A},	'Next'	    				},
+	[7]		=	{ { 'end' },                                   			},
+
+	},	--	[[ COMPLETE ]]
+
+--	Job Points ----------------------------------------------------------------
+
+[0x08D] = {
+
+	[1]		=	{ { 'call', 0xFFF }, 								},
+	[2]		=	{ { 'loop', 10, 4, 0 },                		        },
+	[3]		=	{ {}, {4},		'Job Point',	{'jpoint'}		    },
+	[4]		=	{ { 'end' },                                   		},
+	[5]		=	{ { 'loop', 10, 4, 0 },                		        },
+	[6]		=	{ {}, {0x54},	'Job Point',	{'jpoint'}			},
+	[7]		=	{ { 'end' },                                   		},
 
 	},	--	[[ COMPLETE ]]
 
@@ -546,48 +747,48 @@ local AllRules = {
 
 [0x0AE] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 										},
+	[1]		=	{ { 'call', 0xFFF }, 										},
 
-	[2]  =	 { {}, {0x04,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Chocobo'		},
-	[3]  =	 { {}, {0x04,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Raptor'			},
-	[4]  =	 { {}, {0x04,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Tiger'			},
-	[5]  =	 { {}, {0x04,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Crab'			},
-	[6]  =	 { {}, {0x04,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Red Crab'		},
-	[7]  =	 { {}, {0x04,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Bomb'			},
-	[8]  =	 { {}, {0x04,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Sheep'			},
-	[9]  =	 { {}, {0x04,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Morbol'			},
+	[2]		=	{ {}, {4,1,0,1},		'Chocobo',			{ 'bitflag' }	},
+	[3]		=	{ {}, {4,1,1,1},		'Raptor',			{ 'bitflag' }	},
+	[4]		=	{ {}, {4,1,2,1},		'Tiger',			{ 'bitflag' }	},
+	[5]		=	{ {}, {4,1,3,1},		'Crab',				{ 'bitflag' }	},
+	[6]		=	{ {}, {4,1,4,1},		'Red Crab',			{ 'bitflag' }	},
+	[7]		=	{ {}, {4,1,5,1},		'Bomb',				{ 'bitflag' }	},
+	[8]		=	{ {}, {4,1,6,1},		'Sheep',			{ 'bitflag' }	},
+	[9]		=	{ {}, {4,1,7,1},		'Morbol',			{ 'bitflag' }	},
 
-	[10] =	 { {}, {0x05,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Crawler'		},
-	[11] =	 { {}, {0x05,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Fenrir'			},
-	[12] =	 { {}, {0x05,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Beetle'			},
-	[13] =	 { {}, {0x05,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Moogle'			},
-	[14] =	 { {}, {0x05,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Magic Pot'		},
-	[15] =	 { {}, {0x05,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Tulfaire'		},
-	[16] =	 { {}, {0x05,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Warmachine'		},
-	[17] =	 { {}, {0x05,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Xzomit'			},
+	[12]	=	{ {}, {5,1,0,1},		'Crawler',			{ 'bitflag' }	},
+	[13]	=	{ {}, {5,1,1,1},		'Fenrir',			{ 'bitflag' }	},
+	[14]	=	{ {}, {5,1,2,1},		'Beetle',			{ 'bitflag' }	},
+	[15]	=	{ {}, {5,1,3,1},		'Moogle',			{ 'bitflag' }	},
+	[16]	=	{ {}, {5,1,4,1},		'Magic Pot',		{ 'bitflag' }	},
+	[17]	=	{ {}, {5,1,5,1},		'Tulfaire',			{ 'bitflag' }	},
+	[18]	=	{ {}, {5,1,6,1},		'Warmachine',		{ 'bitflag' }	},
+	[19]	=	{ {}, {5,1,7,1},		'Xzomit',			{ 'bitflag' }	},
 
-	[18] =	 { {}, {0x06,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Hippogryph'		},
-	[19] =	 { {}, {0x06,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Spectral Chair'	},
-	[20] =	 { {}, {0x06,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Spheroid'		},
-	[21] =	 { {}, {0x06,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Omega'			},
-	[22] =	 { {}, {0x06,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Coeurl'			},
-	[23] =	 { {}, {0x06,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Goobbue'		},
-	[24] =	 { {}, {0x06,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Raaz'			},
-	[25] =	 { {}, {0x06,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Levitus'		},
+	[22]	=	{ {}, {6,1,0,1},		'Hippogryph',		{ 'bitflag' }	},
+	[23]	=	{ {}, {6,1,1,1},		'Spectral Chair',	{ 'bitflag' }	},
+	[24]	=	{ {}, {6,1,2,1},		'Spheroid',			{ 'bitflag' }	},
+	[25]	=	{ {}, {6,1,3,1},		'Omega',			{ 'bitflag' }	},
+	[26]	=	{ {}, {6,1,4,1},		'Coeurl',			{ 'bitflag' }	},
+	[27]	=	{ {}, {6,1,5,1},		'Goobbue',			{ 'bitflag' }	},
+	[28]	=	{ {}, {6,1,6,1},		'Raaz',				{ 'bitflag' }	},
+	[29]	=	{ {}, {6,1,7,1},		'Levitus',			{ 'bitflag' }	},
 
-	[26] =	 { {}, {0x07,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Adamantoise'	},
-	[27] =	 { {}, {0x07,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Dhalmel'		},
-	[28] =	 { {}, {0x07,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Doll'			},
-	[29] =	 { {}, {0x07,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Golden Bomb'	},
-	[30] =	 { {}, {0x07,16},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Buffalo'		},
-	[31] =	 { {}, {0x07,32},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Wivre'			},
-	[32] =	 { {}, {0x07,64},  'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Red Raptor'		},
-	[33] =	 { {}, {0x07,128}, 'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Iron Giant'		},
+	[32]	=	{ {}, {7,1,0,1},		'Adamantoise',		{ 'bitflag' }	},
+	[33]	=	{ {}, {7,1,1,1},		'Dhalmel',			{ 'bitflag' }	},
+	[34]	=	{ {}, {7,1,2,1},		'Doll',				{ 'bitflag' }	},
+	[35]	=	{ {}, {7,1,3,1},		'Golden Bomb',		{ 'bitflag' }	},
+	[36]	=	{ {}, {7,1,4,1},		'Buffalo',			{ 'bitflag' }	},
+	[37]	=	{ {}, {7,1,5,1},		'Wivre',			{ 'bitflag' }	},
+	[38]	=	{ {}, {7,1,6,1},		'Red Raptor',		{ 'bitflag' }	},
+	[39]	=	{ {}, {7,1,7,1},		'Iron Giant',		{ 'bitflag' }	},
 
-	[34] =	 { {}, {0x08,1},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Byakko'			},
-	[35] =	 { {}, {0x08,2},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Noble Chocobo'	},
-	[36] =	 { {}, {0x08,4},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Ixion'			},
-	[37] =	 { {}, {0x08,8},   'byte',  'bool',  'Bit Flag',  {'set', 1},  0,  'Phuabo'			},
+	[42]	=	{ {}, {8,1,0,1},		'Byakko',			{ 'bitflag' }	},
+	[43]	=	{ {}, {8,1,1,1},		'Noble Chocobo',	{ 'bitflag' }	},
+	[44]	=	{ {}, {8,1,2,1},		'Ixion',			{ 'bitflag' }	},
+	[45]	=	{ {}, {8,1,3,1},		'Phuabo',			{ 'bitflag' }	},
 
 	},	--	[[ COMPLETE ]]
 
@@ -595,21 +796,21 @@ local AllRules = {
 
 [0x0DF] = {
 
-	[1]  =  {  { 'call', 0xFFF }, 								},
-	[2]  =	{  {}, {4},   	'rdword',  'raw',  	'ID'           	},
-	[3]  =	{  {}, {8},   	'rdword',  'raw',  	'HP'           	},
-	[4]  =	{  {}, {12},  	'rdword',  'raw',  	'MP'           	},
-	[5]  =	{  {}, {16},  	'rdword',  'raw',  	'TP'           	},
-	[6]  =	{  {}, {20},  	'rword',   'raw',  	'Index'        	},
-	[7]  =	{  {}, {22},  	'byte',    'raw',  	' HP %%'       	},
-	[8]  =	{  {}, {23},  	'byte',    'raw',  	' MP %%'       	},
-	[9]  =	{  {}, {32},  	'byte',    'job',  	'Main Job'     	},
-	[10] =	{  {}, {33},  	'byte',    'raw',  	'Main Level'   	},
-	[11] =	{  {}, {34},  	'byte',    'job',  	'Sub Job'      	},
-	[12] =	{  {}, {35},   	'byte',    'raw',  	'Sub Level'    	},
-	[13] =	{  {}, {0x25,1},'byte',    'bool',	'Bit Flag',  {'set', 1},  0,  'Job Mastery Unlocked'	},
-	[14] =	{  {}, {0x25,2},'byte',    'bool',	'Bit Flag',  {'set', 1},  0,  'This Job Capped'			},
-	[15] =	{  {}, {0x24}, 	'byte',    'raw',  	'Master Level' 	},
+	[1]		=	{ { 'call', 0xFFF }, 								},
+	[2]		=	{ {}, {4,4},		'ID'           					},
+	[3]		=	{ {}, {8,4},		'HP'           					},
+	[4]		=	{ {}, {12,4},		'MP'           					},
+	[5]		=	{ {}, {16,4},		'TP'           					},
+	[6]		=	{ {}, {20,2},		'Index'        					},
+	[7]		=	{ {}, {22},			' HP %%'       					},
+	[8]		=	{ {}, {23},			' MP %%'						},
+	[9]		=	{ {}, {32},			'Main Job', {'job'}				},
+	[10]	=	{ {}, {33},			'Main Level'					},
+	[11]	=	{ {}, {34},			'Sub Job', {'job'}				},
+	[12]	=	{ {}, {35},			'Sub Level'						},
+	[13]	=	{ {}, {0x25,1,0,1},	'JM Unlocked',  {'bitflag'}		},
+	[14]	=	{ {}, {0x25,1,1,1},	'Job Capped',  	{'bitflag'}		},
+	[15]	=	{ {}, {0x24}, 		'Master Level' 					},
 
 	},	--	[[ COMPLETE ]]
 
@@ -617,11 +818,11 @@ local AllRules = {
 
 [0x119] = {
 
-	[1] =   {  { 'call', 0xFFF }, 							},
-	[2] =   {  { 'loop', 30, 8, 0 },                        },
-	[3] =	{  {},  {15},  'byte',    'raw',    'Ability',	{},  3,  '' },
-	[4] =	{  {},  {12},  'rword',   'raw',    'Timer'		},
-	[5] =   {  { 'end' },                                   },
+	[1]		=	{ { 'call', 0xFFF }, 						},
+	[2]		=	{ { 'loop', 30, 8, 0 },                     },
+	[3]		=	{ {},  {15},  	'Ability'					},
+	[4]		=	{ {},  {12,3},  'Timer'						},
+	[5]		=	{ { 'end' },                                },
 
 },	--	[[ COMPLETE ]]
 

@@ -18,7 +18,7 @@ local MyTable = T{
 	[15]	=   'Wardrobe 7',
 	[16]	=   'Wardrobe 8',
 	[17]	=   'Recycle Bin',
-	[18]	=	'Max Container ID'
+	[18]	=	'Max Container'
 
 	}
 	
