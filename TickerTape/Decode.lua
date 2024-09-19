@@ -6,1380 +6,37 @@ require('common')
 
 local chat	= require('chat')
 local imgui	= require('imgui')
-local ETC	= require('ETC')
+
+local ETC			= require('ETC')			--	Our global data (brushes etc)
+local XFunc 		= require('XFunc')			--	Our support functions
+local X64 			= require('X64Reg')			--	Our 64 bit register
+local CentralData	= require('CentralData')	--	Central data store
 
 local Decode = {
 
-	RuleStack	=	{},
+	RuleStack		=	{},
 
-	Jobs	  	= T{	'WAR', 'MNK', 'WHM', 'BLM', 'RDM', 'THF', 'PLD', 'DRK', 'BST', 'BRD', 'RNG', 
-						'SAM', 'NIN', 'DRG', 'SMN', 'BLU', 'COR', 'PUP', 'DNC', 'SCH', 'GEO', 'RUN', },
+	Jobs	  		= T{	'WAR', 'MNK', 'WHM', 'BLM', 'RDM', 'THF', 'PLD', 'DRK', 'BST', 'BRD', 'RNG', 
+							'SAM', 'NIN', 'DRG', 'SMN', 'BLU', 'COR', 'PUP', 'DNC', 'SCH', 'GEO', 'RUN', },
 
-	Actions		= require('data/Tab_Actions'),		--	Names of actions
-	Storage		= require('data/Tab_Storage'),		--	Names of storage locations
-	Attach		= require('data/Tab_Attach'),		--	Names of puppet attachments (by sub ID)
-	Merits		= require('data/Tab_Merits'),		--	Names of merits
-	JobPoints	= require('data/Tab_JobPoints'),	--	Names of Job Point effects
+	TAB_Actions		= require('data/Tab_Actions'),		--	Names of actions
+	TAB_Storage		= require('data/Tab_Storage'),		--	Names of storage locations
+	TAB_Attach		= require('data/Tab_Attach'),		--	Names of puppet attachments (by sub ID)
+	TAB_Merits		= require('data/Tab_Merits'),		--	Names of merits
+	TAB_JPoints		= require('data/Tab_JobPoints'),	--	Names of Job Point effects
+	TAB_Music		= require('data/Tab_Music'),		--	Names of songs
+	TAB_Weather		= require('data/Tab_Weather'),		--	Names of weather formats
+	TAB_MogHouse	= require('data/Tab_MogHouse'),		--	Names of mog house locations
+	TAB_ActCats		= require('data/Tab_ActCats'),		--	Names of action categories
+	TAB_WSkills		= require('data/Tab_WeaponSkills'),	--	Names of weapon skills
+	TAB_Abilities	= require('data/Tab_Abilities'),	--	Names of Abilities
+	TAB_Mounts		= require('data/Tab_Mounts'),		--	Names of Mounts
+	TAB_Recasts		= require('data/Tab_Recasts'),		--	Names of Ability Recasts
+	TAB_LogStates	= require('data/Tab_LogState'),		--	Names of Zone log states
+	TAB_Geo			= require('data/Tab_Geo'),			--	Names of GEO colure effects
+	TAB_Puppet		= require('data/Tab_Puppet'),		--	Names of Puppet parts
 
 	Tables	=	{
-
-		[1]	=	T{	[0] = 'None',
-					[1] = 'Basic Melee Attack',
-					[2] = 'Ranged Attack Finish',
-					[3] = 'Weapon Skill Finish',
-					[4] = 'Magic Finish',
-					[5] = 'Item Finish',
-					[6] = 'Job Ability Finish',
-					[7] = 'Weapon / Monster Skill Start',
-					[8] = 'Magic (Cast) Start',
-					[9] = 'Item (Use) Start',
-					[10] = 'Ability (Job) Start',
-					[11] = 'Mob Ability / Skill Finish',
-					[12] = 'Ranged Attack Start',
-					[13] = 'Pet Mob Ability Finish',
-					[14] = 'Dance Ability',
-					[15] = 'Run Ward Effusion',
-					[21] = 'Quarry',
-					[22] = 'Sprint',
-				},
-
-		[2]	=	T{	[16]	=	'Mighty Strikes',
-					[17]	=	'Hundred Fists',
-					[18]	=	'Benediction',
-					[19]	=	'Manafont',
-					[20]	=	'Chainspell',
-					[21]	=	'Perfect Dodge',
-					[22]	=	'Invincible',
-					[23]	=	'Blood Weapon',
-					[24]	=	'Familiar',
-					[25]	=	'Soul Voice',
-					[26]	=	'Eagle Eye Shot',
-					[27]	=	'Meikyo Shisui',
-					[28]	=	'Mijin Gakure',
-					[29]	=	'Spirit Surge',
-					[30]	=	'Astral Flow',
-					[31]	=	'Berserk',
-					[32]	=	'Warcry',
-					[33]	=	'Defender',
-					[34]	=	'Aggressor',
-					[35]	=	'Provoke',
-					[36]	=	'Focus',
-					[37]	=	'Dodge',
-					[38]	=	'Chakra',
-					[39]	=	'Boost',
-					[40]	=	'Counterstance',
-					[41]	=	'Steal',
-					[42]	=	'Flee',
-					[43]	=	'Hide',
-					[44]	=	'Sneak Attack',
-					[45]	=	'Mug',
-					[46]	=	'Shield Bash',
-					[47]	=	'Holy Circle',
-					[48]	=	'Sentinel',
-					[49]	=	'Souleater',
-					[50]	=	'Arcane Circle',
-					[51]	=	'Last Resort',
-					[52]	=	'Charm',
-					[53]	=	'Gauge',
-					[54]	=	'Tame',
-					[55]	=	'Pet Commands',
-					[56]	=	'Scavenge',
-					[57]	=	'Shadowbind',
-					[58]	=	'Camouflage',
-					[59]	=	'Sharpshot',
-					[60]	=	'Barrage',
-					[61]	=	'Call Wyvern',
-					[62]	=	'Third Eye',
-					[63]	=	'Meditate',
-					[64]	=	'Warding Circle',
-					[65]	=	'Ancient Circle',
-					[66]	=	'Jump',
-					[67]	=	'High Jump',
-					[68]	=	'Super Jump',
-					[69]	=	'Fight',
-					[70]	=	'Heel',
-					[71]	=	'Leave',
-					[72]	=	'Sic',
-					[73]	=	'Stay',
-					[74]	=	'Divine Seal',
-					[75]	=	'Elemental Seal',
-					[76]	=	'Trick Attack',
-					[77]	=	'Weapon Bash',
-					[78]	=	'Reward',
-					[79]	=	'Cover',
-					[80]	=	'Spirit Link',
-					[81]	=	'Enrage',
-					[82]	=	'Chi Blast',
-					[83]	=	'Convert',
-					[84]	=	'Accomplice',
-					[85]	=	'Call Beast',
-					[86]	=	'Unlimited Shot',
-					[87]	=	'Dismiss',
-					[88]	=	'Assault',
-					[89]	=	'Retreat',
-					[90]	=	'Release',
-					[91]	=	'Blood Pact Rage',
-					[92]	=	'Rampart',
-					[93]	=	'Azure Lore',
-					[94]	=	'Chain Affinity',
-					[95]	=	'Burst Affinity',
-					[96]	=	'Wild Card',
-					[97]	=	'Phantom Roll',
-					[98]	=	'Fighters Roll',
-					[99]	=	'Monks Roll',
-					[100]	=	'Healers Roll',
-					[101]	=	'Wizards Roll',
-					[102]	=	'Warlocks Roll',
-					[103]	=	'Rogues Roll',
-					[104]	=	'Gallants Roll',
-					[105]	=	'Chaos Roll',
-					[106]	=	'Beast Roll',
-					[107]	=	'Choral Roll',
-					[108]	=	'Hunters Roll',
-					[109]	=	'Samurai Roll',
-					[110]	=	'Ninja Roll',
-					[111]	=	'Drachen Roll',
-					[112]	=	'Evokers Roll',
-					[113]	=	'Maguss Roll',
-					[114]	=	'Corsairs Roll',
-					[115]	=	'Puppet Roll',
-					[116]	=	'Dancers Roll',
-					[117]	=	'Scholars Roll',
-					[118]	=	'Bolters Roll',
-					[119]	=	'Casters Roll',
-					[120]	=	'Coursers Roll',
-					[121]	=	'Blitzers Roll',
-					[122]	=	'Tacticians Roll',
-					[123]	=	'Double Up',
-					[124]	=	'Quick Draw',
-					[125]	=	'Fire Shot',
-					[126]	=	'Ice Shot',
-					[127]	=	'Wind Shot',
-					[128]	=	'Earth Shot',
-					[129]	=	'Thunder Shot',
-					[130]	=	'Water Shot',
-					[131]	=	'Light Shot',
-					[132]	=	'Dark Shot',
-					[133]	=	'Random Deal',
-					[135]	=	'Overdrive',
-					[136]	=	'Activate',
-					[137]	=	'Repair',
-					[138]	=	'Deploy',
-					[139]	=	'Deactivate',
-					[140]	=	'Retrieve',
-					[141]	=	'Fire Maneuver',
-					[142]	=	'Ice Maneuver',
-					[143]	=	'Wind Maneuver',
-					[144]	=	'Earth Maneuver',
-					[145]	=	'Thunder Maneuver',
-					[146]	=	'Water Maneuver',
-					[147]	=	'Light Maneuver',
-					[148]	=	'Dark Maneuver',
-					[149]	=	'Warriors Charge',
-					[150]	=	'Tomahawk',
-					[151]	=	'Mantra',
-					[152]	=	'Formless Strikes',
-					[153]	=	'Martyr',
-					[154]	=	'Devotion',
-					[155]	=	'Assassins Charge',
-					[156]	=	'Feint',
-					[157]	=	'Fealty',
-					[158]	=	'Chivalry',
-					[159]	=	'Dark Seal',
-					[160]	=	'Diabolic Eye',
-					[161]	=	'Feral Howl',
-					[162]	=	'Killer Instinct',
-					[163]	=	'Nightingale',
-					[164]	=	'Troubadour',
-					[165]	=	'Stealth Shot',
-					[166]	=	'Flashy Shot',
-					[167]	=	'Shikikoyo',
-					[168]	=	'Blade Bash',
-					[169]	=	'Deep Breathing',
-					[170]	=	'Angon',
-					[171]	=	'Sange',
-					[172]	=	'Blood Pact Ward',
-					[173]	=	'Hasso',
-					[174]	=	'Seigan',
-					[175]	=	'Convergence',
-					[176]	=	'Diffusion',
-					[177]	=	'Snake Eye',
-					[178]	=	'Fold',
-					[179]	=	'Role Reversal',
-					[180]	=	'Ventriloquy',
-					[181]	=	'Trance',
-					[182]	=	'Sambas',
-					[183]	=	'Waltzes',
-					[184]	=	'Drain Samba',
-					[185]	=	'Drain Samba II',
-					[186]	=	'Drain Samba III',
-					[187]	=	'Aspir Samba',
-					[188]	=	'Aspir Samba II',
-					[189]	=	'Haste Samba',
-					[190]	=	'Curing Waltz',
-					[191]	=	'Curing Waltz II',
-					[192]	=	'Curing Waltz III',
-					[193]	=	'Curing Waltz IV',
-					[194]	=	'Healing Waltz',
-					[195]	=	'Divine Waltz',
-					[196]	=	'Spectral Jig',
-					[197]	=	'Chocobo Jig',
-					[198]	=	'Jigs',
-					[199]	=	'Steps',
-					[200]	=	'Flourishes I',
-					[201]	=	'Quickstep',
-					[202]	=	'Box Step',
-					[203]	=	'Stutter Step',
-					[204]	=	'Animated Flourish',
-					[205]	=	'Desperate Flourish',
-					[206]	=	'Reverse Flourish',
-					[207]	=	'Violent Flourish',
-					[208]	=	'Building Flourish',
-					[209]	=	'Wild Flourish',
-					[210]	=	'Tabula Rasa',
-					[211]	=	'Light Arts',
-					[212]	=	'Dark Arts',
-					[213]	=	'Flourishes II',
-					[214]	=	'Modus Veritas',
-					[215]	=	'Penury',
-					[216]	=	'Celerity',
-					[217]	=	'Rapture',
-					[218]	=	'Accession',
-					[219]	=	'Parsimony',
-					[220]	=	'Alacrity',
-					[221]	=	'Ebullience',
-					[222]	=	'Manifestation',
-					[223]	=	'Stratagems',
-					[224]	=	'Velocity Shot',
-					[225]	=	'Snarl',
-					[226]	=	'Retaliation',
-					[227]	=	'Footwork',
-					[228]	=	'Despoil',
-					[229]	=	'Pianissimo',
-					[230]	=	'Sekkanoki',
-					[232]	=	'Elemental Siphon',
-					[233]	=	'Sublimation',
-					[234]	=	'Addendum White',
-					[235]	=	'Addendum Black',
-					[236]	=	'Collaborator',
-					[237]	=	'Saber Dance',
-					[238]	=	'Fan Dance',
-					[239]	=	'No Foot Rise',
-					[240]	=	'Altruism',
-					[241]	=	'Focalization',
-					[242]	=	'Tranquility',
-					[243]	=	'Equanimity',
-					[244]	=	'Enlightenment',
-					[245]	=	'Afflatus Solace',
-					[246]	=	'Afflatus Misery',
-					[247]	=	'Composure',
-					[248]	=	'Yonin',
-					[249]	=	'Innin',
-					[250]	=	'Avatars Favor',
-					[251]	=	'Ready',
-					[252]	=	'Restraint',
-					[253]	=	'Perfect Counter',
-					[254]	=	'Mana Wall',
-					[255]	=	'Divine Emblem',
-					[256]	=	'Nether Void',
-					[257]	=	'Double Shot',
-					[258]	=	'Sengikori',
-					[259]	=	'Futae',
-					[260]	=	'Spirit Jump',
-					[261]	=	'Presto',
-					[262]	=	'Divine Waltz II',
-					[263]	=	'Flourishes III',
-					[264]	=	'Climactic Flourish',
-					[265]	=	'Libra',
-					[266]	=	'Tactical Switch',
-					[267]	=	'Blood Rage',
-					[269]	=	'Impetus',
-					[270]	=	'Divine Caress',
-					[271]	=	'Sacrosanctity',
-					[272]	=	'Enmity Douse',
-					[273]	=	'Manawell',
-					[274]	=	'Saboteur',
-					[275]	=	'Spontaneity',
-					[276]	=	'Conspirator',
-					[277]	=	'Sepulcher',
-					[278]	=	'Palisade',
-					[279]	=	'Arcane Crest',
-					[280]	=	'Scarlet Delirium',
-					[281]	=	'Spur',
-					[282]	=	'Run Wild',
-					[283]	=	'Tenuto',
-					[284]	=	'Marcato',
-					[285]	=	'Bounty Shot',
-					[286]	=	'Decoy Shot',
-					[287]	=	'Hamanoha',
-					[288]	=	'Hagakure',
-					[291]	=	'Issekigan',
-					[292]	=	'Dragon Breaker',
-					[293]	=	'Soul Jump',
-					[295]	=	'Steady Wing',
-					[296]	=	'Mana Cede',
-					[297]	=	'Efflux',
-					[298]	=	'Unbridled Learning',
-					[301]	=	'Triple Shot',
-					[302]	=	'Allies Roll',
-					[303]	=	'Misers Roll',
-					[304]	=	'Companions Roll',
-					[305]	=	'Avengers Roll',
-					[309]	=	'Cooldown',
-					[310]	=	'Deux Ex Automata',
-					[311]	=	'Curing Waltz V',
-					[312]	=	'Feather Step',
-					[313]	=	'Striking Flourish',
-					[314]	=	'Ternary Flourish',
-					[316]	=	'Perpetuance',
-					[317]	=	'Immanence',
-					[318]	=	'Smiting Breath',
-					[319]	=	'Restoring Breath',
-					[320]	=	'Konzen Ittai',
-					[321]	=	'Bully',
-					[322]	=	'Maintenance',
-					[323]	=	'Brazen Rush',
-					[324]	=	'Inner Strength',
-					[325]	=	'Asylum',
-					[326]	=	'Subtle Sorcery',
-					[327]	=	'Stymie',
-					[328]	=	'Larceny',
-					[329]	=	'Intervene',
-					[330]	=	'Soul Enslavement',
-					[331]	=	'Unleash',
-					[332]	=	'Clarion Call',
-					[333]	=	'Overkill',
-					[334]	=	'Yaegasumi',
-					[335]	=	'Mikage',
-					[336]	=	'Fly High',
-					[337]	=	'Astral Conduit',
-					[338]	=	'Unbridled Wisdom',
-					[339]	=	'Cutting Cards',
-					[340]	=	'Heady Artifice',
-					[341]	=	'Grand Pas',
-					[342]	=	'Caper Emissarius',
-					[343]	=	'Bolster',
-					[344]	=	'Swipe',
-					[345]	=	'Full Circle',
-					[346]	=	'Lasting Emanation',
-					[347]	=	'Ecliptic Attrition',
-					[348]	=	'Collimated Fervor',
-					[349]	=	'Life Cycle',
-					[350]	=	'Blaze Of Glory',
-					[351]	=	'Dematerialize',
-					[352]	=	'Theurgic Focus',
-					[353]	=	'Concentric Pulse',
-					[354]	=	'Mending Halation',
-					[355]	=	'Radial Arcana',
-					[356]	=	'Elemental Sforzo',
-					[357]	=	'Rune Enchantment',
-					[358]	=	'Ignis',
-					[359]	=	'Gelus',
-					[360]	=	'Flabra',
-					[361]	=	'Tellus',
-					[362]	=	'Sulpor',
-					[363]	=	'Unda',
-					[364]	=	'Lux',
-					[365]	=	'Tenebrae',
-					[366]	=	'Vallation',
-					[367]	=	'Swordplay',
-					[368]	=	'Lunge',
-					[369]	=	'Pflug',
-					[370]	=	'Embolden',
-					[371]	=	'Valiance',
-					[372]	=	'Gambit',
-					[373]	=	'Liement',
-					[374]	=	'One For All',
-					[375]	=	'Rayke',
-					[376]	=	'Battuta',
-					[377]	=	'Widened Compass',
-					[378]	=	'Odyllic Subterfuge',
-					[379]	=	'Ward',
-					[380]	=	'Effusion',
-					[381]	=	'Chocobo Jig II',
-					[382]	=	'Relinquish',
-					[383]	=	'Vivacious Pulse',
-					[384]	=	'Contradance',
-					[385]	=	'Apogee',
-					[386]	=	'Entrust',
-					[387]	=	'Bestial Loyalty',
-					[388]	=	'Cascade',
-					[389]	=	'Consume Mana',
-					[390]	=	'Naturalists Roll',
-					[391]	=	'Runeists Roll',
-					[392]	=	'Crooked Cards',
-					[393]	=	'Spirit Bond',
-					[394]	=	'Majesty',
-					[512]	=	'Healing Ruby',
-					[513]	=	'Poison Nails',
-					[514]	=	'Shining Ruby',
-					[515]	=	'Glittering Ruby',
-					[516]	=	'Meteorite',
-					[517]	=	'Healing Ruby II',
-					[518]	=	'Searing Light',
-					[519]	=	'Holy Mist',
-					[520]	=	'Soothing Ruby',
-					[521]	=	'Regal Scratch',
-					[522]	=	'Mewing Lullaby',
-					[523]	=	'Earie Eye',
-					[524]	=	'Level Qm Holy',
-					[525]	=	'Raise II',
-					[526]	=	'Reraise II',
-					[527]	=	'Altanas Favor',
-					[528]	=	'Moonlit Charge',
-					[529]	=	'Crescent Fang',
-					[530]	=	'Lunar Cry',
-					[531]	=	'Lunar Roar',
-					[532]	=	'Ecliptic Growl',
-					[533]	=	'Ecliptic Howl',
-					[534]	=	'Eclipse Bite',
-					[536]	=	'Howling Moon',
-					[537]	=	'Lunar Bay',
-					[538]	=	'Heavenward Howl',
-					[539]	=	'Impact',
-					[544]	=	'Punch',
-					[545]	=	'Fire II',
-					[546]	=	'Burning Strike',
-					[547]	=	'Double Punch',
-					[548]	=	'Crimson Howl',
-					[549]	=	'Fire IV',
-					[550]	=	'Flaming Crush',
-					[551]	=	'Meteor Strike',
-					[552]	=	'Inferno',
-					[553]	=	'Inferno Howl',
-					[554]	=	'Conflag Strike',
-					[560]	=	'Rock Throw',
-					[561]	=	'Stone II',
-					[562]	=	'Rock Buster',
-					[563]	=	'Megalith Throw',
-					[564]	=	'Earthen Ward',
-					[565]	=	'Stone IV',
-					[566]	=	'Mountain Buster',
-					[567]	=	'Geocrush',
-					[568]	=	'Earthen Fury',
-					[569]	=	'Earthen Armor',
-					[570]	=	'Crag Throw',
-					[576]	=	'Barracuda Dive',
-					[577]	=	'Water II',
-					[578]	=	'Tail Whip',
-					[579]	=	'Spring Water',
-					[580]	=	'Slowga',
-					[581]	=	'Water IV',
-					[582]	=	'Spinning Dive',
-					[583]	=	'Grand Fall',
-					[584]	=	'Tidal Wave',
-					[585]	=	'Tidal Roar',
-					[586]	=	'Soothing Current',
-					[592]	=	'Claw',
-					[593]	=	'Aero II',
-					[594]	=	'Whispering Wind',
-					[595]	=	'Hastega',
-					[596]	=	'Aerial Armor',
-					[597]	=	'Aero IV',
-					[598]	=	'Predator Claws',
-					[599]	=	'Wind Blade',
-					[600]	=	'Aerial Blast',
-					[601]	=	'Fleet Wind',
-					[602]	=	'Hastega II',
-					[608]	=	'Axe Kick',
-					[609]	=	'Blizzard II',
-					[610]	=	'Frost Armor',
-					[611]	=	'Sleepga',
-					[612]	=	'Double Slap',
-					[613]	=	'Blizzard IV',
-					[614]	=	'Rush',
-					[615]	=	'Heavenly Strike',
-					[616]	=	'Diamond Dust',
-					[617]	=	'Diamond Storm',
-					[618]	=	'Crystal Blessing',
-					[624]	=	'Shock Strike',
-					[625]	=	'Thunder II',
-					[626]	=	'Rolling Thunder',
-					[627]	=	'Thunderspark',
-					[628]	=	'Lightning Armor',
-					[629]	=	'Thunder IV',
-					[630]	=	'Chaotic Strike',
-					[631]	=	'Thunderstorm',
-					[632]	=	'Judgment Bolt',
-					[633]	=	'Shock Squall',
-					[634]	=	'Volt Strike',
-					[639]	=	'Healing Breath IV',
-					[640]	=	'Healing Breath',
-					[641]	=	'Healing Breath II',
-					[642]	=	'Healing Breath III',
-					[643]	=	'Remove Poison',
-					[644]	=	'Remove Blindness',
-					[645]	=	'Remove Paralysis',
-					[646]	=	'Flame Breath',
-					[647]	=	'Frost Breath',
-					[648]	=	'Gust Breath',
-					[649]	=	'Sand Breath',
-					[650]	=	'Lightning Breath',
-					[651]	=	'Hydro Breath',
-					[652]	=	'Super Climb',
-					[653]	=	'Remove Curse',
-					[654]	=	'Remove Disease',
-					[656]	=	'Camisado',
-					[657]	=	'Somnolence',
-					[658]	=	'Nightmare',
-					[659]	=	'Ultimate Terror',
-					[660]	=	'Noctoshield',
-					[661]	=	'Dream Shroud',
-					[662]	=	'Nether Blast',
-					[663]	=	'Cacodemonia',
-					[664]	=	'Ruinous Omen',
-					[665]	=	'Night Terror',
-					[666]	=	'Pavor Nocturnus',
-					[667]	=	'Blindside',
-					[668]	=	'Deconstruction',
-					[669]	=	'Chronoshift',
-					[670]	=	'Zantetsuken',
-					[671]	=	'Perfect Defense',
-					[672]	=	'Foot Kick',
-					[673]	=	'Dust Cloud',
-					[674]	=	'Whirl Claws',
-					[675]	=	'Head Butt',
-					[676]	=	'Dream Flower',
-					[677]	=	'Wild Oats',
-					[678]	=	'Leaf Dagger',
-					[679]	=	'Scream',
-					[680]	=	'Roar',
-					[681]	=	'Razor Fang',
-					[682]	=	'Claw Cyclone',
-					[683]	=	'Tail Blow',
-					[684]	=	'Fireball',
-					[685]	=	'Blockhead',
-					[686]	=	'Braincrush',
-					[687]	=	'Infrasonics',
-					[688]	=	'Secretion',
-					[689]	=	'Lamb Chop',
-					[690]	=	'Rage',
-					[691]	=	'Sheep Charge',
-					[692]	=	'Sheep Song',
-					[693]	=	'Bubble Shower',
-					[694]	=	'Bubble Curtain',
-					[695]	=	'Big Scissors',
-					[696]	=	'Scissor Gaurd',
-					[697]	=	'Metallic Body',
-					[698]	=	'Needleshot',
-					[699]	=	'Random Needles',
-					[700]	=	'Frogkick',
-					[701]	=	'Spore',
-					[702]	=	'Queasyshroom',
-					[703]	=	'Numbshroom',
-					[704]	=	'Shakeshroom',
-					[705]	=	'Silence Gas',
-					[706]	=	'Dark Spore',
-					[707]	=	'Power Attack',
-					[708]	=	'Hi Freq Field',
-					[709]	=	'Rhino Attack',
-					[710]	=	'Rhino Gaurd',
-					[711]	=	'Spoil',
-					[712]	=	'Cursed Sphere',
-					[713]	=	'Venom',
-					[714]	=	'Sandblast',
-					[715]	=	'Sandpit',
-					[716]	=	'Venom Spray',
-					[717]	=	'Mandibular Bite',
-					[718]	=	'Soporific',
-					[719]	=	'Gloeosuccus',
-					[720]	=	'Palsy Pollen',
-					[721]	=	'Geist Wall',
-					[722]	=	'Numbing Noise',
-					[723]	=	'Nimble Snap',
-					[724]	=	'Cyclotail',
-					[725]	=	'Toxic Spit',
-					[726]	=	'Double Claw',
-					[727]	=	'Grapple',
-					[728]	=	'Spinning Top',
-					[729]	=	'Filamented Hold',
-					[730]	=	'Chaotic Eye',
-					[731]	=	'Blaster',
-					[732]	=	'Suction',
-					[733]	=	'Drainkiss',
-					[734]	=	'Snow Cloud',
-					[735]	=	'Wild Carrot',
-					[736]	=	'Sudden Lunge',
-					[737]	=	'Spiral Spin',
-					[738]	=	'Noisome Powder',
-					[740]	=	'Acid Mist',
-					[741]	=	'Tp Drainkiss',
-					[743]	=	'Scythe Tail',
-					[744]	=	'Ripper Fang',
-					[745]	=	'Chomp Rush',
-					[746]	=	'Charged Whisker',
-					[747]	=	'Purulent Ooze',
-					[748]	=	'Corrosive Ooze',
-					[749]	=	'Back Heel',
-					[750]	=	'Jettatura',
-					[751]	=	'Choke Breath',
-					[752]	=	'Fantod',
-					[753]	=	'Tortoise Stomp',
-					[754]	=	'Harden Shell',
-					[755]	=	'Aqua Breath',
-					[756]	=	'Wing Slap',
-					[757]	=	'Beak Lunge',
-					[758]	=	'Intimidate',
-					[759]	=	'Recoil Dive',
-					[760]	=	'Water Wall',
-					[761]	=	'Sensilla Blades',
-					[762]	=	'Tegmina Buffet',
-					[763]	=	'Molting Plumage',
-					[764]	=	'Swooping Frenzy',
-					[765]	=	'Sweeping Gouge',
-					[766]	=	'Zealous Snort',
-					[767]	=	'Pentapeck',
-					[768]	=	'Tickling Tendrils',
-					[769]	=	'Stink Bomb',
-					[770]	=	'Nectarous Deluge',
-					[771]	=	'Nepenthic Plunge',
-					[772]	=	'Somersault',
-					[773]	=	'Pacifying Ruby',
-					[774]	=	'Foul Waters',
-					[775]	=	'Pestilent Plume',
-					[776]	=	'Pecking Flurry',
-					[777]	=	'Sickle Slash',
-					[778]	=	'Acid Spray',
-					[779]	=	'Spider Web',
-					[780]	=	'Regal Gash',
-					[781]	=	'Infected Leech',
-					[782]	=	'Gloom Spray',
-					[786]	=	'Disembowel',
-					[787]	=	'Extirpating Salvo',
-					[960]	=	'Clarsach Call',
-					[961]	=	'Welt',
-					[962]	=	'Katabatic Blades',
-					[963]	=	'Lunatic Voice',
-					[964]	=	'Roundhouse',
-					[965]	=	'Chinook',
-					[966]	=	'Bitter Elegy',
-					[967]	=	'Sonic Buffet',
-					[968]	=	'Tornado II',
-					[969]	=	'Winds Blessing',
-					[970]	=	'Hysteric Assault',
-
-				},
-
-		[3]	=	T{	[1] = 	'Berserk',
-					[2] = 	'Warcry',
-					[3] = 	'Defender',
-					[4] = 	'Aggressor',
-					[5] = 	'Provoke',
-					[6] = 	'Warriors Charge',
-					[7] = 	'Tomahawk',
-					[8] = 	'Retaliation',
-					[9] = 	'Restraint',
-					[10] = 	'Run Elemental Resistance Ja',
-					[11] = 	'Blood Rage',
-					[12] = 	'Cascade',
-					[13] = 	'Focus',
-					[14] = 	'Dodge',
-					[15] = 	'Chakra',
-					[16] = 	'Boost',
-					[17] = 	'Counterstance',
-					[18] = 	'Chi Blast',
-					[19] = 	'Mantra',
-					[20] = 	'Formless Strikes',
-					[21] = 	'Footwork',
-					[22] = 	'Perfect Counter',
-					[23] = 	'Vallation',
-					[24] = 	'Swordplay',
-					[25] = 	'Lunge',
-					[26] = 	'Divine Seal',
-					[27] = 	'Martyr',
-					[28] = 	'Devotion',
-					[29] = 	'Afflatus Solace',
-					[30] = 	'Afflatus Misery',
-					[31] = 	'Impetus',
-					[32] = 	'Divine Caress',
-					[33] = 	'Sacrosanctity',
-					[34] = 	'Enmity Douse',
-					[35] = 	'Manawell',
-					[36] = 	'Saboteur',
-					[37] = 	'Spontaneity',
-					[38] = 	'Elemental Seal',
-					[39] = 	'Mana Wall',
-					[40] = 	'Conspirator',
-					[41] = 	'Sepulcher',
-					[42] = 	'Palisade',
-					[43] = 	'Arcane Crest',
-					[44] = 	'Scarlet Delirium',
-					[47] = 	'Tenuto',
-					[48] = 	'Marcato',
-					[49] = 	'Convert',
-					[50] = 	'Composure',
-					[51] = 	'Bounty Shot',
-					[52] = 	'Decoy Shot',
-					[53] = 	'Hamanoha',
-					[54] = 	'Hagakure',
-					[57] = 	'Issekigan',
-					[58] = 	'Dragon Breaker',
-					[59] = 	'Pflug',
-					[60] = 	'Steal',
-					[61] = 	'Despoil',
-					[62] = 	'Flee',
-					[63] = 	'Hide',
-					[64] = 	'Sneak Attack',
-					[65] = 	'Mug',
-					[66] = 	'Trick Attack',
-					[67] = 	'Assassins Charge',
-					[68] = 	'Feint',
-					[69] = 	'Accomplice',
-					[69] = 	'Collaborator',
-					[70] = 	'Steady Wing',
-					[71] = 	'Mana Cede',
-					[72] = 	'Embolden',
-					[73] = 	'Shield Bash',
-					[74] = 	'Holy Circle',
-					[75] = 	'Sentinel',
-					[76] = 	'Cover',
-					[77] = 	'Rampart',
-					[78] = 	'Fealty',
-					[79] = 	'Chivalry',
-					[80] = 	'Divine Emblem',
-					[81] = 	'Unbridled Learning',
-					[85] = 	'Souleater',
-					[86] = 	'Arcane Circle',
-					[87] = 	'Last Resort',
-					[88] = 	'Weapon Bash',
-					[89] = 	'Dark Seal',
-					[90] = 	'Diabolic Eye',
-					[91] = 	'Nether Void',
-					[92] = 	'Rune Enchantment',
-					[93] = 	'Entrust',
-					[94] = 	'Bestial Loyalty',
-					[95] = 	'Consume Mana',
-					[96] = 	'Crooked Cards',
-					[97] = 	'Charm',
-					[98] = 	'Gauge',
-					[99] = 	'Tame',
-					[100] =	'Fight',
-					[101] =	'Bst Pet Ja',
-					[102] =	'Monster Attack',
-					[103] =	'Monster Spell',
-					[104] =	'Call Beast',
-					[105] =	'Feral Howl',
-					[106] =	'Killer Instinct',
-					[107] =	'Snarl',
-					[108] =	'Apogee',
-					[109] =	'Nightingale',
-					[110] =	'Troubadour',
-					[112] =	'Pianissimo',
-					[113] =	'Valiance',
-					[114] =	'Cooldown',
-					[115] =	'Deus Ex Automata',
-					[116] =	'Gambit',
-					[117] =	'Liement',
-					[118] =	'One For All',
-					[119] =	'Rayke',
-					[120] =	'Battuta',
-					[121] =	'Scavenge',
-					[122] =	'Shadowbind',
-					[123] =	'Camouflage',
-					[124] =	'Sharpshot',
-					[125] =	'Barrage',
-					[126] =	'Unlimited Shot',
-					[126] =	'Double Shot',
-					[127] =	'Stealth Shot',
-					[128] =	'Flashy Shot',
-					[129] =	'Velocity Shot',
-					[130] =	'Widened Compass',
-					[131] =	'Odyllic Subterfuge',
-					[132] =	'Konzen Ittai',
-					[133] =	'Third Eye',
-					[134] =	'Meditate',
-					[135] =	'Warding Circle',
-					[136] =	'Shikikoyo',
-					[137] =	'Blade Bash',
-					[138] =	'Hasso',
-					[139] =	'Seigan',
-					[140] =	'Sekkanoki',
-					[141] =	'Sengikori',
-					[142] =	'Ward',
-					[143] =	'Effusion',
-					[145] =	'Sange',
-					[146] =	'Yonin',
-					[147] =	'Innin',
-					[148] =	'Futae',
-					[149] =	'Spirit Bond',
-					[150] =	'Majesty',
-					[157] =	'Ancient Circle',
-					[158] =	'Jump',
-					[159] =	'High Jump',
-					[160] =	'Super Jump',
-					[161] =	'Dismiss',
-					[162] =	'Spirit Link',
-					[163] =	'Call Wyvern',
-					[164] =	'Deep Breathing',
-					[165] =	'Angon',
-					[166] =	'Spirit Jump',
-					[167] =	'Soul Jump',
-					[170] =	'Assault',
-					[171] =	'Retreat',
-					[172] =	'Release',
-					[173] =	'Blood Pact Rage Attacks',
-					[174] =	'Blood Pact Ward Effects',
-					[175] =	'Elemental Siphon',
-					[176] =	'Avatars Favor',
-					[181] =	'Chain Affinity',
-					[182] =	'Burst Affinity',
-					[183] =	'Convergence',
-					[184] =	'Diffusion',
-					[185] =	'Efflux',
-					[186] =	'Curing Waltz II',
-					[187] =	'Curing Waltz III',
-					[188] =	'Curing Waltz IV',
-					[189] =	'Curing Waltz V',
-					[190] =	'Divine Waltz II',
-					[193] =	'Cor Rolls',
-					[194] =	'Double Up',
-					[195] =	'Cor Shots',
-					[196] =	'Random Deal',
-					[197] =	'Snake Eye',
-					[198] =	'Fold',
-					[199] =	'Quick Draw',
-					[205] =	'Activate',
-					[206] =	'Repair',
-					[207] =	'Deploy',
-					[208] =	'Deactivate',
-					[209] =	'Retrieve',
-					[210] =	'Maneuver',
-					[211] =	'Role Reversal',
-					[212] =	'Ventriloquy',
-					[213] =	'Tactical Switch',
-					[214] =	'Maintenance',
-					[215] =	'Healing Waltz',
-					[216] =	'Sambas',
-					[216] =	'Drain Samba',
-					[217] =	'Waltzes',
-					[218] =	'Jigs',
-					[219] =	'Saber Dance',
-					[220] =	'Steps',
-					[221] =	'Flourish',
-					[222] =	'Alt Flourishes',
-					[223] =	'No Foot Rise',
-					[224] =	'Fan Dance',
-					[225] =	'Divine Waltz',
-					[226] =	'Flourishes III',
-					[228] =	'Light Arts',
-					[229] =	'Contradance',
-					[230] =	'Modus Veritas',
-					[231] =	'Sch Ja',
-					[232] =	'Dark Arts',
-					[233] =	'Stratagems',
-					[234] =	'Sublimation',
-					[235] =	'Enlightenment',
-					[236] =	'Presto',
-					[237] =	'Libra',
-					[238] =	'Smiting Breath',
-					[239] =	'Restoring Breath',
-					[240] =	'Bully',
-					[241] =	'Swipe',
-					[242] =	'Vivacious Pulse',
-					[243] =	'Full Circle',
-					[244] =	'Geo Ja',
-					[245] =	'Collimated Fervor',
-					[246] =	'Life Cycle',
-					[247] =	'Blaze Of Glory',
-					[248] =	'Dematerialize',
-					[249] =	'Theurgic Focus',
-					[250] =	'Concentric Pulse',
-					[251] =	'Mending Halation',
-					[252] =	'Radial Arcana',
-					[253] =	'Relinquish',
-					[254] =	'Job Abilities (Var)',
-					[254] =	'Caper Emissarius',
-					[255] =	'Pet Commands',
-					[467] =	'Triple Shot',
-
-		},
-
-	[4]	=	T{		[0]   = "None",
-					[1]   = "Sunshine",
-					[2]   = "Clouds",    
-					[3]   = "Fog",      
-					[4]   = "Hot Spell",
-					[5]   = "Heat Wave",   
-					[6]   = "Rain",   
-					[7]   = "Squall",
-					[8]   = "Dust Storm",
-					[9]   = "Sand Storm",
-					[10]  = "Wind",  
-					[11]  = "Gales",
-					[12]  = "Snow",
-					[13]  = "Blizzards",
-					[14]  = "Thunder",
-					[15]  = "Thunderstorms",
-					[16]  = "Auroras",
-					[17]  = "Stellar Glare",
-					[18]  = "Gloom",
-					[19]  = "Darkness",
-
-		},
-
-	[5]	=	T{	    [1] = 'Harlequin Head',
-					[2] = 'Valoredge Head',
-					[3] = 'Sharpshot Head',
-					[4] = 'Stormwaker Head',
-					[5] = 'Soulsoother Head',
-					[6] = 'Spiritreaver Head',
-		},
-
-	[6]	=	T{	    [32] = 'Harlequin Frame',
-					[33] = 'Valoredge Frame',
-					[34] = 'Sharpshot Frame',
-					[35] = 'Stormwaker Frame',
-		},
-
-
-	[7] =	T{
-
-			[0x00]	=	'Chocobo',
-			[0x01]	=	'Raptor',
-			[0x02]	=	'Tiger',
-			[0x03]	=	'Crab',
-			[0x04]	=	'Red Crab',
-			[0x05]	=	'Bomb',
-			[0x06]	=	'Sheep',
-			[0x07]	=	'Morbol',
-			[0x08]	=	'Crawler',
-			[0x09]	=	'Fenrir',
-			[0x0A]	=	'Beetle',
-			[0x0B]	=	'Moogle',
-			[0x0C]	=	'Magic Pot',
-			[0x0D]	=	'Tulfaire',
-			[0x0E]	=	'Warmachine',
-			[0x0F]	=	'Xzomit',
-			[0x10]	=	'Hippogryph',
-			[0x11]	=	'Spectral Chair',
-			[0x12]	=	'Spheroid',
-			[0x13]	=	'Omega',
-			[0x14]	=	'Coeurl',
-			[0x15]	=	'Goobbue',
-			[0x16]	=	'Raaz',
-			[0x17]	=	'Levitus',
-			[0x18]	=	'Adamantoise',
-			[0x19]	=	'Dhalmel',
-			[0x1A]	=	'Doll',
-			[0x1B]	=	'Golden Bomb',
-			[0x1C]	=	'Buffalo',
-			[0x1D]	=	'Wivre',
-			[0x1E]	=	'Red Raptor',
-			[0x1F]	=	'Iron Giant',
-			[0x20]	=	'Byakko',
-			[0x21]	=	'Noble Chocobo',
-			[0x22]	=	'Ixion',
-			[0x23]	=	'Phuabo',
-			
-		},
-	
-		[8] = T{
-
-			[40] = 'Cloister of Time and Souls',
-			[41] = 'Royal Wanderlust',
-			[42] = 'Snowdrift Waltz',
-			[43] = 'Troubled Shadows',
-			[44] = 'Where Lords Rule Not',
-			[45] = 'Summers Lost',
-			[46] = 'Goddess Divine',
-			[47] = 'Echoes of Creation',
-			[48] = 'Main Theme',
-			[49] = 'Luck of the Mog',
-			[50] = 'Feast of the Ladies',
-			[51] = 'Scarlet Skies',
-			[52] = 'Melodies Errant',
-			[53] = 'Shinryu',
-			[54] = 'Everlasting Bonds',
-			[55] = 'Provenance Watcher',
-			[56] = 'Where it All Begins',
-			[57] = 'Steel Sings',
-			[58] = 'A New Direction',
-			[59] = 'The Pioneers',
-			[60] = 'Into Lands Primeval',
-			[61] = 'Waters Umbral Knell',
-			[62] = 'Keepers of the Wild',
-			[63] = 'The Sacred City of Adoulin',
-			[64] = 'Breaking Ground',
-			[65] = 'Hades',
-			[66] = 'Arciela',
-			[67] = 'Mog Resort',
-			[68] = 'Worlds Away',
-			[69] = 'Unknown',
-			[70] = 'Monstrosity',
-			[71] = 'The Pioneers (Piano)',
-			[72] = 'The Divine',
-			[73] = 'The Serpentine Labyrinth',
-			[74] = 'Clouds Over Ulbuka',
-			[75] = 'The Price',
-			[76] = 'Forever Today',
-			[77] = 'Unused ID',
-			[78] = 'Forever Today (EP. Ver - Instrumental)',
-			[79] = 'Unknown',
-			[80] = 'Unknown',
-			[81] = 'Isle of the Gods',
-			[82] = 'Wail of the Void',
-			[83] = 'Rhapsodies of Vanadiel',
-			[84] = 'Unknown name',
-			[101] = 'Battle Theme',
-			[102] = 'Battle in the Dungeon #2',
-			[103] = 'Battle Theme #2',
-			[104] = 'A Road Once Travelled',
-			[105] = 'Mhaura',
-			[106] = 'Voyager',
-			[107] = 'The Kingdom of SandOria',
-			[108] = 'Vandiel March',
-			[109] = 'Ronfaure',
-			[110] = 'The Grand Duchy of Jeuno',
-			[111] = 'Blackout',
-			[112] = 'Selbina',
-			[113] = 'Sarutabaruta',
-			[114] = 'Batallia',
-			[115] = 'Battle in the Dungeon',
-			[116] = 'Gustaberg',
-			[117] = 'ReLude Gardens',
-			[118] = 'Rolanberry Fields',
-			[119] = 'Awakening',
-			[120] = 'Vanadiel March #2',
-			[121] = 'Shadow Lord',
-			[122] = 'One Last Time',
-			[123] = 'Hopelessness',
-			[124] = 'Recollection',
-			[125] = 'Tough Battle',
-			[126] = 'Mog House',
-			[127] = 'Anxiety',
-			[128] = 'Airship',
-			[129] = 'Hook',
-			[130] = 'Tarutaru Female',
-			[131] = 'Elvaan Female',
-			[132] = 'Elvaan Male',
-			[133] = 'Hume Male',
-			[134] = 'Yuhtunga Jungle',
-			[135] = 'Kazham',
-			[136] = 'The Big One',
-			[137] = 'A Realm of Emptiness',
-			[138] = 'Mercenaries Delight',
-			[139] = 'Delve',
-			[140] = 'Wings of the Goddess',
-			[141] = 'The Cosmic Wheel',
-			[142] = 'Fated Strife',
-			[143] = 'Hellriders',
-			[144] = 'Rapid Onslaught',
-			[145] = 'Encampment Dreams',
-			[146] = 'The Colosseum',
-			[147] = 'Eastward Bound',
-			[148] = 'Forbidden Seal',
-			[149] = 'Jeweled Boughs',
-			[150] = 'Ululations from Beyond',
-			[151] = 'The Federation of Windurst',
-			[152] = 'The Republic of Bastok',
-			[153] = 'Prelude',
-			[154] = 'Metalworks',
-			[155] = 'Castle Zvahl',
-			[156] = 'Chateau dOraguille',
-			[157] = 'Fury',
-			[158] = 'Sauromugue Champaign',
-			[159] = 'Sorrow',
-			[160] = 'Repression (Memoro)',
-			[161] = 'Despair (Memoro)',
-			[162] = 'Heavens Tower',
-			[163] = 'Sometime',
-			[164] = 'Xarcabard',
-			[165] = 'Galka',
-			[166] = 'Mithra',
-			[167] = 'Tarutaru Male',
-			[168] = 'Tarutaru Female',
-			[169] = 'Regeneracy',
-			[170] = 'Buccaneers',
-			[171] = 'Altepa Desert',
-			[172] = 'Black Coffin',
-			[173] = 'Illusions in the Mist',
-			[174] = 'Whispers of the Gods',
-			[175] = 'Bandits Market',
-			[176] = 'Circuit de Chocobo',
-			[177] = 'Run Chocobo',
-			[178] = 'Bustle of the Capital',
-			[179] = 'Vanadiel March #4',
-			[180] = 'Thunder of the March',
-			[181] = 'Unknown',
-			[182] = 'Stargazing',
-			[183] = 'A Puppets Slumber',
-			[184] = 'Eternal Gravestone',
-			[185] = 'Ever-turning Wheels',
-			[186] = 'Iron Colossus',
-			[187] = 'Ragnarok',
-			[188] = 'Choc-a-bye Baby',
-			[189] = 'An Invisible Crown',
-			[190] = 'The Sanctuary of ZiTah',
-			[191] = 'Battle Theme #3',
-			[192] = 'Battle in the Dungeon #3',
-			[193] = 'Tough Battle #2',
-			[194] = 'Bloody Promises',
-			[195] = 'Belief',
-			[196] = 'Fighters of the Crystal',
-			[197] = 'To the Heavens',
-			[198] = 'Ealdnarche',
-			[199] = 'Graviton',
-			[200] = 'Hidden Truths',
-			[201] = 'End Theme',
-			[202] = 'Moongate (Memoro)',
-			[203] = 'Unknown',
-			[204] = 'Unknown',
-			[205] = 'Unknown',
-			[206] = 'Unknown',
-			[207] = 'VeLugannon Palace',
-			[208] = 'Rabao',
-			[209] = 'Norg',
-			[210] = 'RuAun Gardens',
-			[211] = 'RoMaeve',
-			[212] = 'Dash de Chocobo',
-			[213] = 'Hall of the Gods',
-			[214] = 'Eternal Oath',
-			[215] = 'Clash of Standards',
-			[216] = 'On This Blade',
-			[217] = 'Kindred Cry',
-			[218] = 'Depths of the Soul',
-			[219] = 'Onslaught',
-			[220] = 'Turmoil',
-			[221] = 'Moblin Menagerie',
-			[222] = 'Faded Memories',
-			[223] = 'March of the Hero',
-			[224] = 'Dusk and Dawn',
-			[225] = 'Words Unspoken',
-			[226] = 'You Want to Live Forever',
-			[227] = 'Sunbreeze Shuffle',
-			[228] = 'Gates of Paradise',
-			[229] = 'Currents of Time',
-			[230] = 'A New Horizon',
-			[231] = 'Celestial Thunder',
-			[232] = 'The Ruler of the Skies',
-			[233] = 'The Celestial Capital',
-			[234] = 'Happily Ever After',
-			[235] = 'Nocturne of the Gods',
-			[236] = 'Clouded Dawn',
-			[237] = 'Memoria de la Stona',
-			[238] = 'A New Morning',
-			[239] = 'Starlight Celebration',
-			[240] = 'Distant Promises',
-			[241] = 'A Time for Prayer',
-			[242] = 'Unity',
-			[243] = 'Unknown',
-			[244] = 'Unknown',
-			[245] = 'The Forgotten City',
-			[246] = 'March of the Allied Forces',
-			[247] = 'Roar of the Battle Drums',
-			[248] = 'Young Griffons in Flight',
-			[249] = 'Run maggot',
-			[250] = 'Under a Clouded Moon',
-			[251] = 'Autumn Footfalls',
-			[252] = 'Flowers on the Battlefield',
-			[253] = 'Echoes of a Zephyr',
-			[254] = 'Griffons Never Die',
-			
-		},
-
-		[9] = T{
-
-			[1] = 'Combo',
-			[2] = 'Shoulder Tackle',
-			[3] = 'One Inch Punch',
-			[4] = 'Backhand Blow',
-			[5] = 'Raging Fists',
-			[6] = 'Spinning Attack',
-			[7] = 'Howling Fist',
-			[8] = 'Dragon Kick',
-			[9] = 'Asuran Fists',
-			[10] = 'Final Heaven',
-			[11] = 'Ascetics Fury',
-			[12] = 'Stringing Pummel',
-			[13] = 'Tornado Kick',
-			[14] = 'Victory Smite',
-			[15] = 'Shijin Spiral',
-			[16] = 'Wasp Sting',
-			[17] = 'Viper Bite',
-			[18] = 'Shadowstitch',
-			[19] = 'Gust Slash',
-			[20] = 'Cyclone',
-			[23] = 'Dancing Edge',
-			[24] = 'Shark Bite',
-			[25] = 'Evisceration',
-			[26] = 'Mercy Stroke',
-			[27] = 'Mandalic Stab',
-			[28] = 'Mordant Rime',
-			[29] = 'Pyrrhic Kleos',
-			[30] = 'Aeolian Edge',
-			[31] = 'Rudras Storm',
-			[32] = 'Fast Blade',
-			[33] = 'Burning Blade',
-			[34] = 'Red Lotus Blade',
-			[35] = 'Flat Blade',
-			[36] = 'Shining Blade',
-			[37] = 'Seraph Blade',
-			[38] = 'Circle Blade',
-			[40] = 'Vorpal Blade',
-			[41] = 'Swift Blade',
-			[42] = 'Savage Blade',
-			[43] = 'Knights of Round',
-			[44] = 'Death Blossom',
-			[45] = 'Atonement',
-			[46] = 'Expiacion',
-			[48] = 'Hard Slash',
-			[49] = 'Power Slash',
-			[50] = 'Frostbite',
-			[51] = 'Freezebite',
-			[52] = 'Shockwave',
-			[53] = 'Crescent Moon',
-			[54] = 'Sickle Moon',
-			[55] = 'Spinning Slash',
-			[56] = 'Ground Strike',
-			[57] = 'Scourge',
-			[58] = 'Herculean Slash',
-			[59] = 'Torcleaver',
-			[60] = 'Resolution',
-			[61] = 'Dimidiation',
-			[64] = 'Raging Axe',
-			[65] = 'Smash Axe',
-			[66] = 'Gale Axe',
-			[67] = 'Avalanche Axe',
-			[68] = 'Spinning Axe',
-			[69] = 'Rampage',
-			[70] = 'Calamity',
-			[71] = 'Mistral Axe',
-			[72] = 'Decimation',
-			[73] = 'Onslaught',
-			[74] = 'Primal Rend',
-			[75] = 'Bora Axe',
-			[76] = 'Cloudsplitter',
-			[77] = 'Ruinator',
-			[80] = 'Shield Break',
-			[81] = 'Iron Tempest',
-			[82] = 'Sturmwind',
-			[83] = 'Armor Break',
-			[84] = 'Keen Edge',
-			[85] = 'Weapon Break',
-			[86] = 'Raging Rush',
-			[87] = 'Full Break',
-			[88] = 'Steel Cyclone',
-			[89] = 'Metatron Torment',
-			[90] = 'Kings Justice',
-			[91] = 'Fell Cleave',
-			[92] = 'Ukkos Fury',
-			[93] = 'Upheaval',
-			[96] = 'Slice',
-			[97] = 'Dark Harvest',
-			[98] = 'Shadow of Death',
-			[99] = 'Nightmare Scythe',
-			[100] = 'Spinning Scythe',
-			[101] = 'Vorpal Scythe',
-			[102] = 'Guillotine',
-			[103] = 'Cross Reaper',
-			[104] = 'Spiral Hell',
-			[105] = 'Catastrophe',
-			[106] = 'Insurgency',
-			[107] = 'Infernal Scythe',
-			[108] = 'Quietus',
-			[109] = 'Entropy',
-			[112] = 'Double Thrust',
-			[113] = 'Thunder Thrust',
-			[114] = 'Raiden Thrust',
-			[115] = 'Leg Sweep',
-			[116] = 'Penta Thrust',
-			[117] = 'Vorpal Thrust',
-			[118] = 'Skewer',
-			[119] = 'Wheeling Thrust',
-			[120] = 'Impulse Drive',
-			[121] = 'Geirskogul',
-			[122] = 'Drakesbane',
-			[123] = 'Sonic Thrust',
-			[124] = 'Camlanns Torment',
-			[125] = 'Stardiver',
-			[128] = 'Blade: Rin',
-			[129] = 'Blade: Retsu',
-			[130] = 'Blade: Teki',
-			[131] = 'Blade: To',
-			[132] = 'Blade: Chi',
-			[133] = 'Blade: Ei',
-			[134] = 'Blade: Jin',
-			[135] = 'Blade: Ten',
-			[136] = 'Blade: Ku',
-			[137] = 'Blade: Metsu',
-			[138] = 'Blade: Kamu',
-			[139] = 'Blade: Yu',
-			[140] = 'Blade: Hi',
-			[141] = 'Blade: Shun',
-			[144] = 'Tachi: Enpi',
-			[145] = 'Tachi: Hobaku',
-			[146] = 'Tachi: Goten',
-			[147] = 'Tachi: Kagero',
-			[148] = 'Tachi: Jinpu',
-			[149] = 'Tachi: Koki',
-			[150] = 'Tachi: Yukikaze',
-			[151] = 'Tachi: Gekko',
-			[152] = 'Tachi: Kasha',
-			[153] = 'Tachi: Kaiten',
-			[154] = 'Tachi: Rana',
-			[155] = 'Tachi: Ageha',
-			[156] = 'Tachi: Fudo',
-			[157] = 'Tachi: Shoha',
-			[158] = 'Tachi: Suikawari',
-			[160] = 'Shining Strike',
-			[161] = 'Seraph Strike',
-			[162] = 'Brainshaker',
-			[165] = 'Skullbreaker',
-			[166] = 'True Strike',
-			[167] = 'Judgment',
-			[168] = 'Hexa Strike',
-			[169] = 'Black Halo',
-			[170] = 'Randgrith',
-			[172] = 'Flash Nova',
-			[174] = 'Realmrazer',
-			[175] = 'Exudation',
-			[176] = 'Heavy Swing',
-			[177] = 'Rock Crusher',
-			[178] = 'Earth Crusher',
-			[179] = 'Starburst',
-			[180] = 'Sunburst',
-			[181] = 'Shell Crusher',
-			[182] = 'Full Swing',
-			[184] = 'Retribution',
-			[185] = 'Gate of Tartarus',
-			[186] = 'Vidohunir',
-			[187] = 'Garland of Bliss',
-			[188] = 'Omniscience',
-			[189] = 'Cataclysm',
-			[191] = 'Shattersoul',
-			[192] = 'Flaming Arrow',
-			[193] = 'Piercing Arrow',
-			[194] = 'Dulling Arrow',
-			[196] = 'Sidewinder',
-			[197] = 'Blast Arrow',
-			[198] = 'Arching Arrow',
-			[199] = 'Empyreal Arrow',
-			[200] = 'Namas Arrow',
-			[201] = 'Refulgent Arrow',
-			[202] = 'Jishnus Radiance',
-			[203] = 'Apex Arrow',
-			[208] = 'Hot Shot',
-			[209] = 'Split Shot',
-			[210] = 'Sniper Shot',
-			[212] = 'Slug Shot',
-			[213] = 'Blast Shot',
-			[214] = 'Heavy Shot',
-			[215] = 'Detonator',
-			[216] = 'Coronach',
-			[217] = 'Trueflight',
-			[218] = 'Leaden Salute',
-			[219] = 'Numbing Shot',
-			[220] = 'Wildfire',
-			[221] = 'Last Stand',
-			[224] = 'Exenterator',
-			[225] = 'Chant du Cygne',
-			[226] = 'Requiescat',
-			[227] = 'Knights of Rotund',
-			[228] = 'Final Paradise',
-			[238] = 'Uriel Blade',
-			[239] = 'Glory Slash',
-		
-		},
 
 		[10] = T{
 		
@@ -1405,138 +62,17 @@ local Decode = {
 }
 
 --	---------------------------------------------------------------------------
---	This decodes a direction
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.Direction(UI, PacketDisplay, RuleTable, Packet, value)
-
-	local Angle = value * 360 / 256
-	local Comp  = '?'
-	
-	if value > 240 or value < 16 then Comp = 'E' 
-	elseif value >= 16  and value < 48  then Comp = 'SE'
-	elseif value >= 48  and value < 80  then Comp = 'S'
-	elseif value >= 80  and value < 112 then Comp = 'SW'
-	elseif value >= 112 and value < 144 then Comp = 'W'
-	elseif value >= 144 and value < 176 then Comp = 'NW'
-	elseif value >= 176 and value < 208 then Comp = 'N'
-	else Comp = 'NE' end
-	
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	local Bracket = ETC.Dirty
-	local AngTxt  = ETC.Green
-	local Direct  = ETC.OffW
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		Bracket = ETC.Brown
-		AngTxt  = ETC.Brown
-		Direct  = ETC.Brown
-	end
-
-	imgui.TextColored(Bracket, ('[') )
-	imgui.SameLine()
-	imgui.TextColored(Direct, ('%s'):fmt(Comp) )
-	imgui.SameLine()
-	imgui.TextColored(Bracket, (']') )
-	imgui.SameLine()
-
-	imgui.TextColored(AngTxt, ('%d°'):fmt(Angle) )
-	imgui.SameLine()
-	imgui.TextColored(Bracket, (' .. 0x%.2X -> %d'):fmt(value, value) )
-	
-end
-
---	---------------------------------------------------------------------------
---	WS
---	---------------------------------------------------------------------------
-
-function Decode.WSkill(Packet, PacketDisplay, RuleTable, Value)
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, ('0x%04X'):fmt(Value) )
-	imgui.SameLine()
-
-	local OurTable = Decode.Tables[9]
-
-	if nil ~= OurTable then
-		for i, ThisTable in pairs(OurTable) do
-			if i == math.floor(Value) then
-
-				if nil ~= RuleTable.Command and '@' == RuleTable.Command then
-
-					imgui.SameLine()
-					local XPos = 220 + RuleTable.CMDOpt1
-					imgui.SetCursorPosX(XPos)
-					imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
-
-				else
-					--	Start of new line
-					imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-					imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
-				end
-			end
-		end
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	Spell
---	---------------------------------------------------------------------------
-
-function Decode.Spell(Packet, PacketDisplay, RuleTable, Value)
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, ('0x%04X'):fmt(Value) )
-	imgui.SameLine()
-
-	local resource = AshitaCore:GetResourceManager():GetSpellById(Value)
-
-	if (nil ~= resource) then
-		imgui.TextColored( ETC.Green, ('%s'):fmt(resource.Name[1]) )
-	else
-		imgui.TextColored( ETC.Red, ('UNKNOWN SPELL') )
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	Merit points
---	---------------------------------------------------------------------------
-
-function Decode.MeritPoints(Packet, PacketDisplay, RuleTable, Value)
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	local Ability = Decode.Merits[Value]
-
-	imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, ('0x%04X'):fmt(Value) )
-	imgui.SameLine()
-	
-	if (nil ~= Ability) then
-		imgui.TextColored( ETC.Green, ('%s'):fmt(Ability) )
-	else
-		imgui.TextColored( ETC.Red, ('UNKNOWN') )
-	end
-		
-end
-
---	---------------------------------------------------------------------------
 --	Job points
 --	---------------------------------------------------------------------------
 
-function Decode.JobPoints(Packet, PacketDisplay, RuleTable)
+function Decode.JobPoints(RuleTable, Packet)
 
 	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
-	local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-	local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1)
-	local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 2)
-	local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3)
+	local B1 = XFunc.ExtractByte(Packet, RuleTable.Offset)
+	local B2 = XFunc.ExtractByte(Packet, RuleTable.Offset + 1)
+	local B3 = XFunc.ExtractByte(Packet, RuleTable.Offset + 2)
+	local B4 = XFunc.ExtractByte(Packet, RuleTable.Offset + 3)
 
 	if B1 == 0 and B2 == 0 then		--	No data
 		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(No data in this slot)') )
@@ -1546,9 +82,9 @@ function Decode.JobPoints(Packet, PacketDisplay, RuleTable)
 		local Level			= math.floor(B4 / 4)
 		local Job			= math.floor(JobPointID / 32)
 		local Id			= math.floor(JobPointID % 32)
-		local Name			= 'Unknown'
+		local Name			= 'NONE'
 
-		local Ability = Decode.JobPoints[JobPointID]
+		local Ability = Decode.TAB_JPoints[JobPointID]
 	
 		if (nil ~= Ability) then
 
@@ -1588,345 +124,13 @@ function Decode.JobPoints(Packet, PacketDisplay, RuleTable)
 end
 
 --	---------------------------------------------------------------------------
---	Position decode (X,Y,Z) as 12 bytes (3 x 4) - Can use flags
---	---------------------------------------------------------------------------
-
-function Decode.XYZ_12Bytes(Packet, PacketDisplay, RuleTable)
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-	local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1)
-	local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 2)
-	local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3)
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored( ETC.Brown, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-	else
-		imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('X:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-	end
-	
-	imgui.SameLine()
-
-	local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 4)
-	local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 5)
-	local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 6)
-	local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 7)
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored( ETC.Brown, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-	else
-		imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Y:%.2f  '):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-	end
-	
-	imgui.SameLine()
-
-	local B1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 8)
-	local B2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 9)
-	local B3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 10)
-	local B4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 11)
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored( ETC.Brown, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-	else
-		imgui.TextColored( { 0.9, 0.9, 0.0, 1.0 }, ('Z:%.2f'):fmt( PacketDisplay.BinToFloat32( B1, B2, B3, B4 ) ) )
-	end
-		
-end
-
---	---------------------------------------------------------------------------
---	This decodes a single byte as a JOB
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.JobByte(UI, PacketDisplay, RuleTable, Packet, value)
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		
-		imgui.TextColored(ETC.Brown, ('%d'):fmt(value) )
-		imgui.SameLine()
-		imgui.TextColored(ETC.Brown, ('(0x%.2X)'):fmt(value) )
-
-		if value > 0 and value < 23 then
-			imgui.SameLine()
-			imgui.TextColored(ETC.Brown, ('%s'):fmt(Decode.Jobs[value]) )
-		end
-		
-	else
-
-		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
-		imgui.SameLine()
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.2X)'):fmt(value) )
-		
-		if value > 0 and value < 23 then
-			imgui.SameLine()
-			imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(Decode.Jobs[value]) )
-		end
-		
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	If this data item can show text from a table (list) it is done here
---	---------------------------------------------------------------------------
-
-function Decode.CheckForTable(UI, RuleTable, value)
-
-	--	This data may be able to point to a table
-
-	if RuleTable.TableID ~= 0 then
-
-		local OurTable = Decode.Tables[RuleTable.TableID]
-
-		if nil ~= OurTable then
-			for i, ThisTable in pairs(OurTable) do
-				if i == math.floor(value) then
-
-					if nil ~= RuleTable.Command and '@' == RuleTable.Command then
-
-						--print(string.format('Cmd: %s, Table: %d, Off: %d', RuleTable.Command, RuleTable.TableID, RuleTable.CMDOpt1))
-						imgui.SameLine()
-						
-						local XPos = 220 + RuleTable.CMDOpt1
-						imgui.SetCursorPosX(XPos)
-						imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
-
-					else
-						--	Start of new line
-						imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-						imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
-					end
-				end
-			end
-		end
-
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	This decodes bits
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.Bits(UI, PacketDisplay, RuleTable, Packet, value)
-
-	local	SavedIn	 = math.floor(value)
-	local	vin		 = math.floor(value)
-	local	newvalue = 0
-	local	bitvalue = 1
-
-	--	If we don't start at bit 0 then shift into position
-
-	if 0 ~= RuleTable.Bit then
-		for i=0, (RuleTable.Bit - 1) do
-			vin = math.floor(vin / 2)
-		end
-	end
-
-	local XPos = imgui.GetCursorPosX()
-
-	for i=0, (RuleTable.Len - 1) do
-
-		if (1 == vin % 2) then 
-			newvalue = newvalue + bitvalue
-		end
-
-		vin = math.floor(vin / 2)
-		bitvalue = bitvalue * 2
-
-	end
-
-	imgui.SetCursorPosX(XPos + 10)
-	imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%d'):fmt(newvalue) )
-	imgui.SameLine()
-
-	imgui.SetCursorPosX(XPos + 70)
-
-	if 'byte' == RuleTable.Format then
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('0x%.2X'):fmt(newvalue) )
-	elseif 'word' == RuleTable.Format or 'rword' == RuleTable.Format then
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('0x%.4X'):fmt(newvalue) )
-	elseif 'dword' == RuleTable.Format or 'rdword' == RuleTable.Format then
-		imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('0x%.8X'):fmt(newvalue) )
-	end
-
-	imgui.SameLine()
-	imgui.SetCursorPosX(XPos + 200)
-
-	imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('[%.2d ~ %.2d]'):fmt(RuleTable.Bit, RuleTable.Bit + RuleTable.Len - 1) )
-
-	--	As this is a complex number we allow it to be saved in a flag for future use
-
-	if 'set' == RuleTable.Logic then
-		PacketDisplay.Flags[RuleTable.Flag] = math.floor(newvalue)
-	end
-
-	Decode.CheckForTable(UI, RuleTable, newvalue)
-
-end
-
---	---------------------------------------------------------------------------
---	This decodes a text string
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.String(UI, PacketDisplay, RuleTable, Packet)
-
-	local 	strText		= ""
-	local	index		= 0
-	local	ThisByte	= ""
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	repeat
-		
-		ThisByte = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + index)
-		ThisChar = string.format('%c', ThisByte)
-
-		if ThisByte >= 32 then
-			strText = strText .. ThisChar
-		end
-	
-		index = index + 1
-
-	until ThisByte < 32 or index >= Packet.size
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored(ETC.Brown, ('%c%s%c'):fmt(34, strText, 34) )
-	else
-		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%c%s%c'):fmt(34, strText, 34) )
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	This decodes an IP address
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.IP(Packet, PacketDisplay, RuleTable)
-
-	local	IP1 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset)
-	local	IP2 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 1)
-	local	IP3 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 2)
-	local	IP4 = PacketDisplay.ExtractByte(Packet, RuleTable.Offset + 3)
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored(ETC.Brown, ('Address: %d.%d.%d.%d'):fmt(IP1, IP2, IP3, IP4) )
-	else
-		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('Address: %d.%d.%d.%d'):fmt(IP1, IP2, IP3, IP4) )
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	This decodes an item ID
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.Item(Packet, PacketDisplay, RuleTable, value)
-
-	local resource = AshitaCore:GetResourceManager():GetItemById(value)
-
-	if nil ~= resource then
-		
-		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-	
-		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-			imgui.TextColored(ETC.Brown, ('%s'):fmt(resource.Name[1]) )
-		else
-			imgui.TextColored(ETC.Green, ('%s'):fmt(resource.Name[1]) )
-		end
-
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	This decodes a storge location
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.Store(Packet, PacketDisplay, RuleTable, value)
-
-	local	Store = Decode.Storage[value]
-	local	XPos  = imgui.GetCursorPosX()
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	if nil ~= Store then
-			
-		if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-
-			imgui.TextColored(ETC.Brown, ('%d'):fmt(value) )
-			imgui.SameLine()
-
-			imgui.SetCursorPosX(XPos + 75)
-			imgui.TextColored(ETC.Brown, ('%s'):fmt(Store) )
-
-		else
-
-			imgui.TextColored(ETC.OffW, ('%d'):fmt(value) )
-			imgui.SameLine()
-
-			imgui.SetCursorPosX(XPos + 75)
-			imgui.TextColored(ETC.Green, ('%s'):fmt(Store) )
-		
-		end
-
-	else
-		imgui.TextColored(ETC.Red, ('UNKNOWN LOCATION') )
-	end
-
-end
-
---	---------------------------------------------------------------------------
---	This decodes the Vana'Diel date
---	This data type can be flag controlled
---	---------------------------------------------------------------------------
-
-function Decode.VDate(PacketDisplay, RuleTable, Packet, value)
-
-	local	SavedIn	= math.floor(value)
-	local	min	 	= 0
-	local	hour	= 0
-	local	day  	= 0
-	local	month	= 0
-	local	year	= 0
-
-	min   = math.floor(value) % 60
-	value = math.floor(value / 60)
-
-	hour  = math.floor(value) % 24
-	value = math.floor(value / 24)
-
-	day   = math.floor(value) % 30
-	value = math.floor(value / 30)
-
-	month = math.floor(value) % 12
-	year  = math.floor(value / 12)
-
-	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored(ETC.Brown, ('Y:%d  M:%.2d  D:%.2d  H:%.2d  M:%.2d'):fmt(year, month, day, hour, min) )
-	else
-		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('Y:%d  M:%.2d  D:%.2d  H:%.2d  M:%.2d'):fmt(year, month, day, hour, min) )
-	end
-end
-
---	---------------------------------------------------------------------------
 --	This decodes the craft skill and rank
---	This data type can be flag controlled
 --	---------------------------------------------------------------------------
 
-function Decode.Craft(PacketDisplay, RuleTable, Packet, value)
+function Decode.Craft(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
 
 	local	SavedIn	 = math.floor(value)
 	local	Level	 = math.floor(value / 32)
@@ -1934,137 +138,17 @@ function Decode.Craft(PacketDisplay, RuleTable, Packet, value)
 
 	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
 
-	if (('use' == RuleTable.Logic) and (0 == PacketDisplay.Flags[RuleTable.Flag])) then
-		imgui.TextColored(ETC.Brown, ('Rank:') )
-		imgui.SameLine()
-		imgui.TextColored(ETC.Brown, ('%d'):fmt(Rank) )
-		imgui.SameLine()
-
-		imgui.TextColored(ETC.Brown, ('Level:') )
-		imgui.SameLine()
-		imgui.TextColored(ETC.Brown, ('%d'):fmt(Level) )
-		imgui.SameLine()
-	else
-		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('Rank:') )
-		imgui.SameLine()
-		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(Rank) )
-		imgui.SameLine()
-
-		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('Level:') )
-		imgui.SameLine()
-		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(Level) )
-		imgui.SameLine()
-	end
-
+	imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('Rank:') )
+	imgui.SameLine()
+	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(Rank) )
 	imgui.SameLine()
 
-end
+	imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('Level:') )
+	imgui.SameLine()
+	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(Level) )
+	imgui.SameLine()
 
---	---------------------------------------------------------------------------
---	This converts a string into a table of words
---	---------------------------------------------------------------------------
-
-function Decode.BuildWordList(Status, Words)
-
-	local count		= 0
-	local offset	= 1
-	local index		= 0
-
-	repeat
-
-		index = string.find(Status, ' ', offset)
-
-		if nil ~= index then
-
-			part = ''
-
-			for i=offset, (index - 1) do
-				part = part .. Status[i]
-			end
-
-			count  = count + 1
-
-			table.insert( Words , { index = count,
-									text = part } )
-
-			offset = index + 1
-
-		end
-
-	until nil == index
-
-	--	We now have the last word to add
-
-	part = ''
-
-	repeat
-
-		part = part .. Status[offset]
-		offset = offset + 1
-
-	until offset > string.len(Status)
-
-	table.insert( Words , { index = count + 1,
-							text = part } )
-
-end
-
---	---------------------------------------------------------------------------
---	This decodes a status effect
---	---------------------------------------------------------------------------
-
-function Decode.Status(PacketDisplay, RuleTable, Packet, value)
-
-	local resource = AshitaCore:GetResourceManager():GetStatusIconById(value)
-
-	if nil ~= resource then
-	
-		local Status = resource.Description[1]
-
-		if imgui.CalcTextSize(Status) < 300 then
-
-			imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Status) )
-
-		else
-
-			--	Build a list of spaces
-
-			local Used  = 0
-			local Words = {}
-			Decode.BuildWordList(Status, Words)
-
-			local Try1 = ''
-			local Try2 = ''
-
-			repeat
-				
-				Try1 = Try2
-				Try2 = Try2 .. ' ' .. Words[Used+1].text
-
-				if imgui.CalcTextSize(Try2) > 300 then
-					imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try1) )
-					Try1 = Words[Used+1].text
-					Try2 = Words[Used+1].text
-					imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-				end
-
-				Used = Used + 1
-
-			until Used == #Words
-
-			imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try2) )
-
-		end
-
-	else
-
-		--	We have no idea
-
-		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-		imgui.TextColored(ETC.Red, ('UNKNOWN') )
-
-	end
+	imgui.SameLine()
 
 end
 
@@ -2072,7 +156,10 @@ end
 --	This decodes a delivery box command
 --	---------------------------------------------------------------------------
 
-function Decode.DBox(PacketDisplay, RuleTable, Packet, value)
+function Decode.DBox(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
 
 	local OurTable	= Decode.Tables[10]		--	Table of commands
 	local Name		= 'Unknown'
@@ -2091,12 +178,335 @@ function Decode.DBox(PacketDisplay, RuleTable, Packet, value)
 end
 
 --	---------------------------------------------------------------------------
---	This decodes a song name
+--	This decodes raw data (any data size)
 --	---------------------------------------------------------------------------
 
-function Decode.Music(PacketDisplay, RuleTable, Packet, value)
+function Decode.RAW(RuleTable)
 
-	local OurTable	= Decode.Tables[8]		--	Table of music
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	--	Show the number of bytes in the data (powers of 2)
+
+	XFunc.Hex(value, ETC.OffW, X64.BitCount)	
+
+	--	Show the decimal value at the end
+
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+150)
+
+	XFunc.Decimal(value, ETC.OffW)
+	
+	--	We use this (if requested) to set a sys flag
+
+	if 'set' == RuleTable.Logic then
+		CentralData.Flags[RuleTable.Flag] = value
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes Packet Size (adjusted)
+--	---------------------------------------------------------------------------
+
+function Decode.PSize(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	XFunc.Decimal(value, ETC.OffW)
+	imgui.SameLine()
+
+	value = math.floor(value * 4)
+
+	imgui.SetCursorPosX(XPos+100)
+	imgui.TextColored(ETC.Amber, '>>' )
+	imgui.SameLine()
+
+	imgui.SetCursorPosX(XPos+150)
+	XFunc.Decimal(value, ETC.Amber)
+	imgui.SameLine()
+
+	XFunc.Hex(value, ETC.Amber, 16)	
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a direction
+--	---------------------------------------------------------------------------
+
+function Decode.Direction(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+
+	local Angle = value * 360 / 256
+	local Comp  = '?'
+	
+	if value > 240 or value < 16 then Comp = 'E' 
+	elseif value >= 16  and value < 48  then Comp = 'SE'
+	elseif value >= 48  and value < 80  then Comp = 'S'
+	elseif value >= 80  and value < 112 then Comp = 'SW'
+	elseif value >= 112 and value < 144 then Comp = 'W'
+	elseif value >= 144 and value < 176 then Comp = 'NW'
+	elseif value >= 176 and value < 208 then Comp = 'N'
+	else Comp = 'NE' end
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	imgui.TextColored( ETC.Dirty, '[' )
+	imgui.SameLine()
+	imgui.TextColored( ETC.OffW, ('%s'):fmt(Comp) )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Dirty, ']' )
+	imgui.SameLine()
+
+	imgui.TextColored(ETC.Amber, ('%d°'):fmt(Angle) )
+	imgui.SameLine()
+
+	imgui.SetCursorPosX(XPos+150)
+	
+	XFunc.Hex(value, ETC.OffW, 8)
+	imgui.SameLine()
+	XFunc.Decimal(value, ETC.OffW)
+
+end
+
+--	---------------------------------------------------------------------------
+--	Position decode (X,Y,Z) as 12 bytes (3 x 4) - Can use flags
+--	---------------------------------------------------------------------------
+
+function Decode.XYZ(RuleTable, Packet)
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	local B1 = XFunc.ExtractByte(Packet, RuleTable.Offset)
+	local B2 = XFunc.ExtractByte(Packet, RuleTable.Offset + 1)
+	local B3 = XFunc.ExtractByte(Packet, RuleTable.Offset + 2)
+	local B4 = XFunc.ExtractByte(Packet, RuleTable.Offset + 3)
+
+	imgui.TextColored( ETC.Green,  'X:' )
+	imgui.SameLine()
+	imgui.SetCursorPosX(imgui.GetCursorPosX()-5)
+	imgui.TextColored( ETC.Yellow, ('%.2f  '):fmt( XFunc.BinToFloat32( B1, B2, B3, B4 ) ) )
+	imgui.SameLine()
+
+	local B1 = XFunc.ExtractByte(Packet, RuleTable.Offset + 4)
+	local B2 = XFunc.ExtractByte(Packet, RuleTable.Offset + 5)
+	local B3 = XFunc.ExtractByte(Packet, RuleTable.Offset + 6)
+	local B4 = XFunc.ExtractByte(Packet, RuleTable.Offset + 7)
+
+	imgui.TextColored( ETC.Green,  'Y:' )
+	imgui.SameLine()
+	imgui.SetCursorPosX(imgui.GetCursorPosX()-5)
+	imgui.TextColored( ETC.Yellow, ('%.2f  '):fmt( XFunc.BinToFloat32( B1, B2, B3, B4 ) ) )
+	imgui.SameLine()
+
+	local B1 = XFunc.ExtractByte(Packet, RuleTable.Offset + 8)
+	local B2 = XFunc.ExtractByte(Packet, RuleTable.Offset + 9)
+	local B3 = XFunc.ExtractByte(Packet, RuleTable.Offset + 10)
+	local B4 = XFunc.ExtractByte(Packet, RuleTable.Offset + 11)
+
+	imgui.TextColored( ETC.Green,  'Z:' )
+	imgui.SameLine()
+	imgui.SetCursorPosX(imgui.GetCursorPosX()-5)
+	imgui.TextColored( ETC.Yellow, ('%.2f'):fmt( XFunc.BinToFloat32( B1, B2, B3, B4 ) ) )
+		
+end
+
+--	---------------------------------------------------------------------------
+--	Time
+--	---------------------------------------------------------------------------
+
+function Decode.Time(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+
+	local sec   = value % 60
+	value = value / 60
+
+	local min   = value % 60
+	value = value / 60
+
+	local hour  = value % 24
+	local days  = value / 24
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	imgui.TextColored( ETC.Yellow, ('%d'):fmt(days) )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Green, 'days ' )
+	
+	imgui.SameLine()
+	imgui.TextColored( ETC.Yellow, ('%d'):fmt(hour) )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Green, 'h  ' )
+
+	imgui.SameLine()
+	imgui.TextColored( ETC.Yellow, ('%d'):fmt(min) )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Green, 'm  ' )
+
+	imgui.SameLine()
+	imgui.TextColored( ETC.Yellow, ('%d'):fmt(sec) )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Green, 's' )
+
+end
+
+--	---------------------------------------------------------------------------
+--	Timestamp (mostly pointless)
+--	---------------------------------------------------------------------------
+
+function Decode.MSTime(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+
+	local ms    = value % 1000
+	value = value / 1000
+
+	local sec   = value % 60
+	value = value / 60
+
+	local min   = value % 60
+	value = value / 60
+
+	local hour  = value % 24
+	local days  = value / 24
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	imgui.TextColored( ETC.Yellow, ('%d'):fmt(days) )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Green, 'days' )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Yellow, ('%.2d:%.2d:%.2d  %d'):fmt(hour, min, sec, ms) )
+	imgui.SameLine()
+	imgui.TextColored( ETC.Green, 'ms' )
+
+end
+
+--	-----------------------------------------------------------------------
+--	Entity ID - This is just the index, so we can find what this is
+--	without having to know the zone etc.. this may be a player so check
+--	-----------------------------------------------------------------------
+
+function Decode.EID(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+	local name	= AshitaCore:GetMemoryManager():GetEntity():GetName(value)
+
+	--	If NIL we don't know what or who it is
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= name then
+		imgui.TextColored( ETC.Yellow, ('%s'):fmt(name) )
+	elseif 0 == value then
+		imgui.TextColored( ETC.OffW, 'No Selection' )
+	else
+		imgui.TextColored( ETC.Red, 'Unknown' )
+		imgui.SameLine()
+		imgui.SetCursorPosX(XPos+150)
+	
+		XFunc.Hex(value, ETC.OffW, 8)
+		imgui.SameLine()
+		XFunc.Decimal(value, ETC.OffW)
+	end
+
+end
+
+--	-----------------------------------------------------------------------
+--	Entity ID - This is the full ID
+--	-----------------------------------------------------------------------
+
+function Decode.Entity(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+	local party = AshitaCore:GetMemoryManager():GetParty()
+	local zone	= party:GetMemberZone(0)
+	local base	= 0x1001000 + ((zone - 1) * 4096)
+	local npc	= value - base
+	local name	= AshitaCore:GetMemoryManager():GetEntity():GetName(npc)
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= name then
+		imgui.TextColored( ETC.Yellow , ('%s'):fmt(name) )
+	else
+		name = AshitaCore:GetMemoryManager():GetEntity():GetName(value)
+		if nil ~= name then
+			imgui.TextColored( ETC.Yellow , ('%s'):fmt(name) )
+		else
+			local eid = value - base
+			name = AshitaCore:GetMemoryManager():GetEntity():GetName(eid)
+			if nil ~= name then
+				imgui.TextColored( ETC.Yellow , ('%s'):fmt(name) )
+			else
+				imgui.TextColored( ETC.Red , 'Unknown' )
+				imgui.SameLine()
+				XFunc.Hex(value, ETC.OffW, 32)
+			end
+		end
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a text string
+--	---------------------------------------------------------------------------
+
+function Decode.String(RuleTable, Packet)
+
+	local 	strText		= ""
+	local	index		= 0
+	local	ThisByte	= ""
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	repeat
+		
+		ThisByte = XFunc.ExtractByte(Packet, RuleTable.Offset + index)
+		ThisChar = string.format('%c', ThisByte)
+
+		if ThisByte >= 32 then
+			strText = strText .. ThisChar
+		end
+	
+		index = index + 1
+
+		local stop = false
+
+		if (ThisByte == 0) or ((RuleTable.Offset + index) >= Packet.size) then
+			stop = true 
+		end
+
+		if (RuleTable.Bytes ~= 0) and (index >= RuleTable.Bytes) then
+			stop = true 
+		end
+
+	until stop == true
+
+	local Str = string.format('%c%s%c', 39, strText, 39)
+	imgui.TextColored( ETC.Green, Str )
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a song name (uses the long string logic)
+--	---------------------------------------------------------------------------
+
+function Decode.Music(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local OurTable	= Decode.TAB_Music
 	local Name		= 'Unknown'
 	
 	if nil ~= OurTable then
@@ -2110,40 +520,584 @@ function Decode.Music(PacketDisplay, RuleTable, Packet, value)
 	if imgui.CalcTextSize(Name) < 300 then
 
 		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Name) )
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Name) )
 
 	else
 
-		--	Build a list of spaces
-
-		local Used  = 0
-		local Words = {}
-		
-		Decode.BuildWordList(Name, Words)
-
-		local Try1 = ''
-		local Try2 = ''
-
-		repeat
-			
-			Try1 = Try2
-			Try2 = Try2 .. ' ' .. Words[Used+1].text
-
-			if imgui.CalcTextSize(Try2) > 300 then
-				imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try1) )
-				Try1 = Words[Used+1].text
-				Try2 = Words[Used+1].text
-				imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
-			end
-
-			Used = Used + 1
-
-		until Used == #Words
-
-		imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%s'):fmt(Try2) )
+		XFunc.PaintLongString(Name, ETC.Green, 300)
 
 	end
 
 end
+
+--	---------------------------------------------------------------------------
+--	This decodes an ability
+--	---------------------------------------------------------------------------
+
+function Decode.Ability(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local OurTable	= Decode.TAB_Abilities
+	local Name		= 'Unknown'
+	
+	if nil ~= OurTable then
+		Name = OurTable[value]
+	end
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	XFunc.Hex(value, ETC.OffW, 8)
+	imgui.SameLine()
+	XFunc.Decimal(value, ETC.OffW)
+
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+150)
+
+	if nil ~= Name then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Name) )
+	else
+		imgui.TextColored( ETC.Red, 'Unknown Abilty' )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Weather
+--	---------------------------------------------------------------------------
+
+function Decode.Weather(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local Weather	= Decode.TAB_Weather[value]
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= Weather then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Weather) )
+	end
+
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+150)
+	
+	XFunc.Hex(value, ETC.OffW, 8)
+	imgui.SameLine()
+	XFunc.Decimal(value, ETC.OffW)
+
+end
+
+--	---------------------------------------------------------------------------
+--	GEO Element
+--	---------------------------------------------------------------------------
+
+function Decode.GEO(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local Element	= Decode.TAB_Geo[value]
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= Element then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Element) )
+	end
+
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+150)
+	
+	XFunc.Hex(value, ETC.OffW, 8)
+	imgui.SameLine()
+	XFunc.Decimal(value, ETC.OffW)
+
+end
+
+--	---------------------------------------------------------------------------
+--	Zone Name
+--	---------------------------------------------------------------------------
+
+function Decode.Zone(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+    local party		= AshitaCore:GetMemoryManager():GetParty()
+    local player	= AshitaCore:GetMemoryManager():GetPlayer()
+    local ZoneID	= party:GetMemberZone(0)
+	local ZoneName	= AshitaCore:GetResourceManager():GetString('zones.names', ZoneID)
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= ZoneName then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(ZoneName) )
+	else
+		imgui.TextColored( ETC.Red, 'Invalid Zone' )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Mog House
+--	---------------------------------------------------------------------------
+
+function Decode.MHouse(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local Location	= Decode.TAB_MogHouse[value]
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= Location then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Location) )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Bit extracted from a byte
+--	---------------------------------------------------------------------------
+
+function Decode.BitFlag(RuleTable, Packet)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local Byte		= XFunc.ExtractByte(Packet, RuleTable.Offset)
+	local Start		= Byte
+	local BitVal	= 1
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	imgui.TextColored( ETC.Dirty, ('[') )
+
+	for i=1, 8 do
+			
+		imgui.SameLine()
+		imgui.SetCursorPosX(XPos+10+(i*10))
+		
+		if 	i == (RuleTable.Bit + 1) then
+			if 1 == value then
+				imgui.TextColored( ETC.Green, '1' )
+			else
+				imgui.TextColored( ETC.Red, '0' )
+			end
+		else
+			if 1 == (Byte % 2) then
+				imgui.TextColored( ETC.Soft, '1' )
+			else
+				imgui.TextColored( ETC.Soft, '0' )
+			end
+		end
+
+		Byte = math.floor (Byte / 2)
+
+	end
+	
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+100)
+	imgui.TextColored( ETC.Dirty, (']') )
+	imgui.SameLine()
+
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+150)
+	XFunc.Decimal(value, ETC.OffW)
+	imgui.SameLine()
+	XFunc.Hex(Start, ETC.OffW, 8)
+
+	--	We use this (if requested) to set a sys flag
+
+	if 'set' == RuleTable.Logic then
+		CentralData.Flags[RuleTable.Flag] = value
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes an IP address
+--	---------------------------------------------------------------------------
+
+function Decode.IP(RuleTable, Packet)
+
+	local	IP1 = XFunc.ExtractByte(Packet, RuleTable.Offset)
+	local	IP2 = XFunc.ExtractByte(Packet, RuleTable.Offset + 1)
+	local	IP3 = XFunc.ExtractByte(Packet, RuleTable.Offset + 2)
+	local	IP4 = XFunc.ExtractByte(Packet, RuleTable.Offset + 3)
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('Address: %d.%d.%d.%d'):fmt(IP1, IP2, IP3, IP4) )
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a storge location
+--	---------------------------------------------------------------------------
+
+function Decode.Store(RuleTable)
+
+	local	value = X64.GetValue(RuleTable)
+	local	Store = Decode.TAB_Storage[value]
+	local	XPos  = imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= Store then
+			
+		imgui.TextColored(ETC.Green, ('%s'):fmt(Store) )
+		imgui.SameLine()
+		imgui.SetCursorPosX(XPos+150)
+		XFunc.Decimal(value, ETC.OffW)
+	
+	else
+
+		imgui.TextColored(ETC.Red, ('UNKNOWN LOCATION') )
+		imgui.SameLine()
+		imgui.SetCursorPosX(XPos+150)
+		XFunc.Decimal(value, ETC.OffW)
+
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes an item ID
+--	---------------------------------------------------------------------------
+
+function Decode.Item(RuleTable)
+
+	local	value = X64.GetValue(RuleTable)
+	local	XPos  = imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	local resource = AshitaCore:GetResourceManager():GetItemById(value)
+
+	if nil ~= resource then
+		imgui.TextColored(ETC.Green, ('%s'):fmt(resource.Name[1]) )
+	else
+ 		imgui.TextColored(ETC.Red, 'UNKNOWN ITEM ID' )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes EXData
+--	---------------------------------------------------------------------------
+
+function Decode.EXData(RuleTable, Packet)
+
+	local	OurBytes	= T{}
+	local	XPos  		= imgui.GetCursorPosX()
+	
+	for i=1, 24 do
+		
+		local value = XFunc.ExtractByte(Packet, RuleTable.Offset + i - 1)
+
+		table.insert( OurBytes,	{	Index	= i,
+									Value 	= value, }
+					)
+			
+	end
+
+	table.sort(OurBytes, (function (a, b)
+		return (a.Index < b.Index)
+		end))
+
+	for i=1, 3 do
+
+		imgui.SetCursorPosX(XPos+10)
+
+		for j=1, 8 do
+			
+			if (j ~= 1) then imgui.SameLine() end
+
+			local idx = ((i-1)*8)+j
+			local val = OurBytes[idx].Value
+
+			imgui.TextColored( { 0.9, 0.9, 0.9, 1.0 }, ('%.2X'):fmt(val) )
+
+			imgui.SetCursorPosX(XPos+(j*10))
+
+		end
+
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes an item ID
+--	---------------------------------------------------------------------------
+
+function Decode.Info(RuleTable)
+
+	local	value = X64.GetValue(RuleTable)
+	local	XPos  = imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	imgui.TextColored({ 1.0, 0.5, 1.0, 1.0 }, ('%s'):fmt(RuleTable.Info) )
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes the Vana'Diel date
+--	---------------------------------------------------------------------------
+
+function Decode.VDate(RuleTable)
+
+	local	value = X64.GetValue(RuleTable)
+	local	XPos  = imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	local	min	 	= 0
+	local	hour	= 0
+	local	day  	= 0
+	local	month	= 0
+	local	year	= 0
+
+	min   = math.floor(value) % 60
+	value = math.floor(value / 60)
+
+	hour  = math.floor(value) % 24
+	value = math.floor(value / 24)
+
+	day   = math.floor(value) % 30
+	value = math.floor(value / 30)
+
+	month = math.floor(value) % 12
+	year  = math.floor(value / 12)
+
+	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('Y:%d  M:%.2d  D:%.2d  H:%.2d  M:%.2d'):fmt(year, month, day, hour, min) )
+
+end
+
+--	---------------------------------------------------------------------------
+--	Merit points
+--	---------------------------------------------------------------------------
+
+function Decode.MeritPoints(RuleTable)
+
+	local	value = X64.GetValue(RuleTable)
+	local	XPos  = imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	local Ability = Decode.TAB_Merits[value]
+	imgui.TextColored( ETC.OffW, ('%.3X'):fmt(value) )
+	imgui.SameLine()
+
+	if (nil ~= Ability) then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Ability) )
+	else
+		imgui.TextColored( ETC.Red, ('UNKNOWN') )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a single byte as a JOB
+--	---------------------------------------------------------------------------
+
+function Decode.JobByte(RuleTable)
+
+	local	value = X64.GetValue(RuleTable)
+	local	XPos  = imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('%d'):fmt(value) )
+	imgui.SameLine()
+	imgui.TextColored({ 0.7, 0.7, 0.7, 1.0 }, ('(0x%.2X)'):fmt(value) )
+	
+	imgui.SameLine()
+
+	if value > 0 and value < 23 then
+		imgui.TextColored({ 0.0, 1.0, 0.0, 1.0 }, ('%s'):fmt(Decode.Jobs[value]) )
+	else
+		imgui.TextColored( ETC.Red, 'NONE' )
+	end
+
+end
+
+--	-----------------------------------------------------------------------
+--	Blue Spell (add 0x200)
+--	-----------------------------------------------------------------------
+
+function Decode.BLUSpell(RuleTable)
+
+	local	value		= X64.GetValue(RuleTable) + 0x200
+	local	XPos		= imgui.GetCursorPosX()	
+	local	Resource	= AshitaCore:GetResourceManager():GetSpellById(value)
+	local	Name		= nil
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= Resource then
+		Name = Resource.Name[1]
+	end
+
+	XFunc.Decimal(value, ETC.OffW)
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos+150)
+
+	if value > 512 and nil ~= Name then
+		imgui.TextColored(ETC.Green, ('%s'):fmt(Name) )
+	else
+		imgui.TextColored(ETC.Red, 'Unknown Spell' )
+	end
+
+end
+
+--	-----------------------------------------------------------------------
+--	Attachment (add 0x2100 to get sub ID)
+--	-----------------------------------------------------------------------
+
+function Decode.Attach(RuleTable)
+
+	local	value	= X64.GetValue(RuleTable) + 0x2100
+	local	XPos	= imgui.GetCursorPosX()	
+	local	Name	= nil
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	XFunc.Decimal(value, ETC.OffW)
+	imgui.SameLine()
+
+	imgui.SetCursorPosX(XPos+100)
+
+	Name = Decode.TAB_Attach[value]
+
+	if Name ~= nil then
+		imgui.TextColored(ETC.Green, ('%s'):fmt(Name) )
+	else
+		imgui.TextColored(ETC.Red, 'Unknown' )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Puppet Part
+--	---------------------------------------------------------------------------
+
+function Decode.Puppet(RuleTable)
+
+	local value = X64.GetValue(RuleTable)
+	local XPos  = imgui.GetCursorPosX()
+	local Item	= Decode.TAB_Puppet[value]
+	
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+	XFunc.Decimal(value, ETC.OffW)
+	imgui.SameLine()
+	
+	imgui.SetCursorPosX(XPos+100)
+
+	if nil ~= Item then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(Item) )
+	else
+		imgui.TextColored(ETC.Red, 'Unknown' )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	Spell
+--	---------------------------------------------------------------------------
+
+function Decode.Spell(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	XFunc.Decimal(value, ETC.OffW)
+	imgui.SameLine()
+
+	imgui.SetCursorPosX(XPos+150)
+
+	local resource = AshitaCore:GetResourceManager():GetSpellById(value)
+
+	if (nil ~= resource) then
+		imgui.TextColored( ETC.Green, ('%s'):fmt(resource.Name[1]) )
+	else
+		imgui.TextColored( ETC.Red, ('UNKNOWN SPELL') )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a status effect
+--	---------------------------------------------------------------------------
+
+function Decode.Status(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local resource	= AshitaCore:GetResourceManager():GetStatusIconById(value)
+
+	if nil ~= resource then
+	
+		local Status = resource.Description[1]
+		XFunc.PaintLongString(Status, ETC.Green, 300)
+
+	else
+
+		--	We have no idea
+
+		imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+		imgui.TextColored(ETC.Red, ('UNKNOWN') )
+
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a player action
+--	---------------------------------------------------------------------------
+
+function Decode.Action(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local name		= Decode.TAB_Actions[value]
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	if nil ~= name then
+		imgui.TextColored(ETC.Green, ('%s'):fmt(name) )
+	else
+		imgui.TextColored(ETC.Red, 'UNKNOWN' )
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a weapon skill
+--	---------------------------------------------------------------------------
+
+function Decode.WSkill(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+	local name		= Decode.TAB_Actions[value]
+
+	imgui.SetCursorPosX(imgui.GetCursorPosX()+10)
+
+	XFunc.Hex(value, ETC.OffW, 16)
+	imgui.SameLine()
+	imgui.SetCursorPosX(XPos + 150)
+
+	local OurTable = Decode.TAB_WSkills
+
+	if nil ~= OurTable then
+		for i, ThisTable in pairs(OurTable) do
+			if i == value then
+
+				if nil ~= RuleTable.Command then
+					imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
+				else
+					imgui.TextColored( ETC.Red, 'Unknown' )
+				end
+			end
+		end
+	end
+
+end
+
+--	Return this object
 
 return Decode

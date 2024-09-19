@@ -4,9 +4,10 @@
 
 require('common')
 
-local chat = require('chat')
-
-local CentralData = require('CentralData')
+local chat			= require('chat')
+local imgui			= require('imgui')
+local CentralData	= require('CentralData')
+local XFunc 		= require('XFunc')			--	Our support functions
 
 local DataProc = {
 
@@ -38,21 +39,27 @@ end
 
 function DataProc.DecodeRuleTable(RuleTable)
 
-	for Item, ItemDef in ipairs(RuleTable) do
+	--	{1:Flow}, {2:At}, '3:Caption', {4:Decode}, {5:Logic}, '6:Info'
 
-		--print(string.format('Rule: %d', Item))
+	for Item, ItemDef in pairs(RuleTable) do
+
+		local	CMD		= {'', 0, 0, 0}		--	Text plus up to 3 numbers
 		
 		local   Offset	= 0
-		local   Bits	= 0
+		local	Bytes	= 1
+		local   StBit	= 0
 		local   NoBits	= 0
+
 		local	Logic	= 'none'
 		local	Flag	= 0
-		local	TabID	= 0
-		local	Extra	= ''
-		local	CMD		= {'', 0, 0, 0}
+
+		local	Info	= ''
+		
 		local	Format	= 'na'
-		local	Decode	= 'na'
-		local	String	= 'na'
+		local	Decode	= {'raw','','',''}
+		local	Caption	= 'na'
+
+		--	Extract the command, it may be empty
 
 		if nil ~= ItemDef[1] then
 			if ItemDef[1][1] ~= nil then CMD[1] = ItemDef[1][1] end
@@ -61,40 +68,69 @@ function DataProc.DecodeRuleTable(RuleTable)
 			if ItemDef[1][4] ~= nil then CMD[4] = ItemDef[1][4] end
 		end
 
+		--	Extract the data extraction info
+
 		if nil ~= ItemDef[2] then
 			if ItemDef[2][1] ~= nil then Offset = ItemDef[2][1] end
-			if ItemDef[2][2] ~= nil then Bits   = ItemDef[2][2] end
-			if ItemDef[2][3] ~= nil then NoBits = ItemDef[2][3] end
+			if ItemDef[2][2] ~= nil then Bytes 	= ItemDef[2][2] end
+			if ItemDef[2][3] ~= nil then StBit  = ItemDef[2][3] end
+			if ItemDef[2][4] ~= nil then NoBits = ItemDef[2][4] end
 		end
 
-		if ItemDef[3] ~= nil then Format = ItemDef[3] end
-		if ItemDef[4] ~= nil then Decode = ItemDef[4] end
-		if ItemDef[5] ~= nil then String = ItemDef[5] end
+		--	Correct this as not all data will be provided
 
-		if nil ~= ItemDef[6] then
-			if ItemDef[6][1] ~= nil then Logic = ItemDef[6][1] end
-			if ItemDef[6][2] ~= nil then Flag  = ItemDef[6][2] end
+		if 0 == Bytes then Bytes = 1 end
+		if 0 == NoBits then NoBits = (Bytes * 8) end
+	
+		--	Extract the caption (should be included)
+
+		if ItemDef[3] ~= nil then Caption = ItemDef[3] end
+
+		--	Extract the data decode rules
+
+		if nil ~= ItemDef[4] then
+			if ItemDef[4][1] ~= nil then Decode[1] = ItemDef[4][1] end
+			if ItemDef[4][2] ~= nil then Decode[2] = ItemDef[4][2] end
+			if ItemDef[4][3] ~= nil then Decode[3] = ItemDef[4][3] end
+			if ItemDef[4][4] ~= nil then Decode[4] = ItemDef[4][4] end
 		end
 
-		if ItemDef[7] ~= nil then TabID = ItemDef[7] end
-		if ItemDef[8] ~= nil then Extra = ItemDef[8] end
+		--	Extract the logic (my not be set)
+
+		if nil ~= ItemDef[5] then
+			if ItemDef[5][1] ~= nil then Logic = ItemDef[5][1] end
+			if ItemDef[5][2] ~= nil then Flag  = ItemDef[5][2] end
+		end
+
+		--	If there is extra info text extract it now 
+
+		if ItemDef[6] ~= nil then Info = ItemDef[6] end
+
+		--	Now build a record with what we have
 
 		CentralData.PacketRules:append( {	Index	= Item,
+											
 											Command	= CMD[1],
 											CMDOpt1 = CMD[2],
 											CMDOpt2 = CMD[3],
 											CMDOpt3 = CMD[4],
+											
 											Offset	= Offset,
-											Bit		= Bits,			--	This is the value of the bit, ie bit 7 is 128
+											Bytes	= Bytes,
+											Bit		= StBit,		--	This is the start bit
 											Len		= NoBits,		--	The number of bits when decode == 'bits'
-											Format	= Format,		--	Data format 
-											Decode	= Decode,		--	Basic decode type
-											String	= String,		--	Caption to tell the user what it is
+
+											Decode1	= Decode[1],	--	Decode types (up to 4)
+											Decode2	= Decode[2],
+											Decode3	= Decode[3],
+											Decode4	= Decode[4],
+											
+											Caption	= Caption,		--	Caption to tell the user what it is
 
 											Logic	= Logic,		--	none, use, set
 											Flag	= Flag,			--	Can use or set (see Format) flag from 1 to 1024
-											TableID	= TabID,		--	If there is a table of data for this value
-											Info	= Extra,		--	Info shown when type is a bool
+
+											Info	= Info,			--	Extra info (as text)
 										} )
 
 	end
@@ -203,15 +239,15 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 		if 'switch' == RuleTable.Command then
 
-			TestValue = PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1)
+			TestValue = XFunc.ExtractByte(Packet, RuleTable.CMDOpt1)
 
 			if RuleTable.CMDOpt2 == 2 then
-				TestValue = TestValue + (256 * (PacketDisplay.ExtractByte(Packet, RuleTable.CMDOpt1 + 1)))
+				TestValue = TestValue + (256 * (XFunc.ExtractByte(Packet, RuleTable.CMDOpt1 + 1)))
 			end
 
 		else
 
-			TestValue = PacketDisplay.Flags[RuleTable.CMDOpt1]
+			TestValue = CentralData.Flags[RuleTable.CMDOpt1]
 
 		end
 
@@ -381,8 +417,6 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 	if Found == false and 'call' == RuleTable.Command then
 
 		local found = false
-
-		--print(string.format('CALL 0x%03X, Direction = %d', RuleTable.CMDOpt1, Packet.direction) )
 		
 		if PacketDisplay.VerifyPacketRule(Packet.direction, RuleTable.CMDOpt1) then
 
@@ -395,6 +429,57 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 		end
 
 	end
+
+	--	-----------------------------------------------------------------------
+	--	Field (FLAG) functions
+	--	-----------------------------------------------------------------------
+
+	if Found == false and 'setflag' == RuleTable.Command then
+
+		--	{ 'setflag', 1, -1, 0 }		Flag INDEX, Value (-1 = loop counter)
+
+		if -1 == RuleTable.CMDOpt2 then
+			CentralData.Flags[RuleTable.CMDOpt1] = CentralData.LoopIndex
+		else
+			CentralData.Flags[RuleTable.CMDOpt1] = CentralData.LoopIndex
+		end
+
+		Step	= true
+		Found	= true
+
+	end
+
+	if Found == false and 'incflag' == RuleTable.Command then
+
+		--	{ 'incflag', 1 }		Flag INDEX
+
+		CentralData.Flags[RuleTable.CMDOpt1] = CentralData.Flags[RuleTable.CMDOpt1] + 1
+
+		Step	= true
+		Found	= true
+
+	end
+
+	if Found == false and 'decflag' == RuleTable.Command then
+
+		--	{ 'decflag', 1 }		Flag INDEX
+
+		CentralData.Flags[RuleTable.CMDOpt1] = CentralData.Flags[RuleTable.CMDOpt1] - 1
+		
+		Step	= true
+		Found	= true
+
+	end
+
+	if Found == false and 'useflag' == RuleTable.Command then
+
+		--	{ 'useflag', 1 }		Flag INDEX (at the point where we get the data we use this flag)
+
+		Found	= true
+
+	end
+
+	--	Do we step over this ?
 
 	return Step
 

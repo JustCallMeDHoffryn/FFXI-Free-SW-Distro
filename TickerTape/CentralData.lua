@@ -15,7 +15,11 @@ local CentralData = {
 	PacketRules	=	T{},
 	CmdStk		=	{},
 	IDX			=	1,
+	Flags		=	T{},
 
+	LoopIndex	=	0,
+	PlusByte	=	0,
+	PlusBit		=	0,
 }
 
 --	===========================================================================
@@ -132,6 +136,9 @@ function CentralData.PushLoop(RuleTable)
 		return (a.Index < b.Index)
 		end))
 
+	CentralData.PlusByte	=	0
+	CentralData.PlusBit		=	0
+	
 	--print(string.format('LOOP .. Pushed'))
 
 	--CentralData.ShowStack()
@@ -219,44 +226,22 @@ function CentralData.LoopEnd(RuleTable)
 	local Stack		= CentralData.CmdStk[StackSize]
 	local Line		= Stack.Line + 1
 
-	--	Adjust the code based on the loop
-
-	while Line < CentralData.IDX do
-		
-		if -1 == Stack.Op2 then		--	Increment by the size of the data type
-		
-			if 'word' == CentralData.PacketRules[Line].Format or 'rword' == CentralData.PacketRules[Line].Format then
-				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + 2
-			elseif 'dword' == CentralData.PacketRules[Line].Format or 'rdword' == CentralData.PacketRules[Line].Format then
-				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + 4
-			else
-				CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + 1
-			end
-
-		else
-			CentralData.PacketRules[Line].Offset = CentralData.PacketRules[Line].Offset + Stack.Op2
-		end
-	
-		CentralData.PacketRules[Line].Bit = CentralData.PacketRules[Line].Bit + Stack.Op3
-
-		Line = Line + 1
-
-	end
-
 	Stack.Op1 = Stack.Op1 - 1
 
 	if 0 ~= Stack.Op1 then
-		
-		CentralData.IDX = Stack.Line
-	
+
+		CentralData.PlusByte = CentralData.PlusByte + Stack.Op2
+		CentralData.PlusBit	 = CentralData.PlusBit  + Stack.Op3
+			
+		CentralData.IDX			= Stack.Line
+		CentralData.LoopIndex	= CentralData.LoopIndex + 1
+
 	else
 
-		--	Before we exit we put the loop back to its start settings
-
-		Stack.Op1		= Stack.Op4
-		Stack.Op2		= Stack.Op5
-		Stack.Op31		= Stack.Op6
-
+		CentralData.PlusByte	=	0
+		CentralData.PlusBit		=	0
+		CentralData.LoopIndex	=	0
+		
 		CentralData.Pop()
 
 	end

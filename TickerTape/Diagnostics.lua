@@ -9,6 +9,7 @@ local chat			= require('chat')
 local imgui			= require('imgui')
 local CentralData	= require('CentralData')
 local PacketDisplay = require('PacketDisplay')
+local XFunc         = require('XFunc')		        --	Our support functions
 
 local DIAG = {
 
@@ -200,7 +201,7 @@ function DIAG.LoadProcessor(UI, Packet)
 
     --  Get the byte with the first bit
 
-    local this = PacketDisplay.ExtractByte(Packet, byte)
+    local this = XFunc.ExtractByte(Packet, byte)
     
     --  Shuffle off any remaining bottom bits we dont want
 
@@ -229,7 +230,7 @@ function DIAG.LoadProcessor(UI, Packet)
 
         if 0 == bitsleft then
             byte     = byte + 1
-            this     = PacketDisplay.ExtractByte(Packet, byte)
+            this     = XFunc.ExtractByte(Packet, byte)
             bitsleft = 8
         end
 
@@ -292,26 +293,6 @@ function DIAG.ShowRegister(UI, Packet)
             end
         end
     end
-end
-
---	---------------------------------------------------------------------------
---	Paint A 3D divide
---	---------------------------------------------------------------------------
-
-function DIAG.Divide(line)
-
-    imgui.SetCursorPosY(line)
-
-    imgui.PushStyleColor(ImGuiCol_Separator, { 0.0, 0.0, 0.0, 1.0 })
-    imgui.Separator()
-    imgui.PopStyleColor()
-
-    imgui.SetCursorPosY(line+1)
-
-    imgui.PushStyleColor(ImGuiCol_Separator, { 0.3, 0.3, 0.3, 1.0 })
-    imgui.Separator()
-    imgui.PopStyleColor()
-
 end
 
 --	---------------------------------------------------------------------------
@@ -380,7 +361,7 @@ function DIAG.ShowWindow(UI)
         --  Show the register 
 
         DIAG.ShowRegister(UI, Packet)
-        DIAG.Divide(58)
+        XFunc.Divide(58)
 
         --  Load Register
 
@@ -464,7 +445,7 @@ function DIAG.ShowWindow(UI)
             DIAG.ReadProcessor(UI, Packet)
         end
           
-        DIAG.Divide(145)
+        XFunc.Divide(145)
 
         imgui.SetCursorPosY(155)
         

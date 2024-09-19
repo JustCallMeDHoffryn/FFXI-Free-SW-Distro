@@ -27,6 +27,7 @@ local settings 		= require('settings')
 local MiniFiles		= require('MiniFiles')
 local CentralData	= require('CentralData')
 local DIAG			= require('Diagnostics')
+local X64			= require('X64Reg')
 
 local PacketsClientOUT		= require('data/PacketsOut')	--	Table of packets OUT from the client TO the server
 local PacketsClientIN		= require('data/PacketsIn')		--	Table of packets IN to the client FROM the server
@@ -247,6 +248,7 @@ function UI.load()
 	UI.LoadInRules()
 
 	DIAG.BuildX64()
+	X64.BuildX64()
 
 	--	Push the settings back to disk
 

@@ -1,5 +1,5 @@
 --	---------------------------------------------------------------------------
---	This file contains the outer core of TickerTape, it handles the globals
+--	This file contains the outer core of TickerTape, it handles the basics
 --	---------------------------------------------------------------------------
 --
 --	This code is FREE to use as you want, just please don't claim credit 
