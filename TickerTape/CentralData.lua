@@ -477,7 +477,7 @@ function CentralData.ExecuteCalc(RuleTable)
 			if 1 == opID then Value = Val1 + Val2 end
 			if 2 == opID then Value = Val1 - Val2 end
 			if 3 == opID then Value = Val1 * Val2 end
-			if 4 == opID 0 ~= Val2 then Value = Val1 / Val2 end
+			if 4 == opID and 0 ~= Val2 then Value = Val1 / Val2 end
 			if 5 == opID then Value = bit.lshift(Val1, Val2) end
 			if 6 == opID then Value = bit.rshift(Val1, Val2) end
 
