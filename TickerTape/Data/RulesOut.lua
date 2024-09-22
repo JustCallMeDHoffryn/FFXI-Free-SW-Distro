@@ -323,7 +323,7 @@ local NewRules = {
 	[3]		= { {},  {5},		'Box No'					},
 	[4]		= { {},  {6},		'Post Work No'				},
 	[5]		= { {},  {7},  		'Item Work No'				},
-	[6]		= { {},  {8,4}		'Item Stacks'				},
+	[6]		= { {},  {8,4},		'Item Stacks'				},
 	[7]		= { {},  {12},		'Result'					},
 	[8]		= { {},  {13},		'Param 1'					},
 	[9]		= { {},  {14},		'Param 2'					},
@@ -346,7 +346,7 @@ local NewRules = {
 	[6]		= { { 'switch', 4, 1} },
 
 	[7]		= { { 'case', 4 } },
-	[8]		= { {}, {-1},		'MODE 4', {'info'}, 	'Before sale confirmation' },
+	[8]		= { {}, {-1},		'MODE 4', {'info'}, {},	'Before sale confirmation' },
 	[9]		= { {}, {8,4},		'Asking Price'			},
 	[10]	= { {}, {12,2},		'Inv Location'			},
 	[11]	= { {}, {14,2},		'ItemNo', {'item'}		},
@@ -354,34 +354,34 @@ local NewRules = {
 	[13]	= { { 'break' } },
 
 	[14]	= { { 'case', 5 } },
-	[15]	= { {}, {-1},		'MODE 5', {'info'}, 	'When opening the sales status window' },
-	[16]	= { {}, {-1},		'',		  {'info'},    	'No other data in this packet' },
+	[15]	= { {}, {-1},		'MODE 5', {'info'}, {},	'Opening the sales status window' },
+	[16]	= { {}, {-1},		'',		  {'info'}, {},	'No other data in this packet' },
 	[17]	= { { 'break' } },
 
 	[18]	= { { 'case', 0x0A } },
-	[19]	= { {}, {-1},		'MODE A', {'info'},  	'When opening the auction house' },
-	[20]	= { {}, {-1},		'', 	  {'info'},    	'No other data in this packet' },
+	[19]	= { {}, {-1},		'MODE A', {'info'}, {},	'When opening the auction house' },
+	[20]	= { {}, {-1},		'', 	  {'info'}, {},	'No other data in this packet' },
 	[21]	= { { 'break' } },
 
 	[22]	= { { 'case', 0x0B } },
-	[23]	= { {}, {-1},		'MODE B', {'info'},		'After sale confirmation'	},
+	[23]	= { {}, {-1},		'MODE B', {'info'},	{},	'After sale confirmation'	},
 	[24]	= { {}, {8,4},		'Selling Price'			},
 	[25]	= { {}, {12,2},		'Inv Location'			},
 	[26]	= { {}, {16,4},		'Stack Flag'			},
 	[27]	= { { 'break' } },
 
 	[28]	= { { 'case', 0x0C } },
-	[29]	= { {}, {-1},		'MODE C', {'info'},		'Cancelling an item sale' },
-	[30]	= { {}, {-1},		'', 	  {'info'},  	'No other data in this packet' },
+	[29]	= { {}, {-1},		'MODE C', {'info'},	{},	'Cancelling an item sale' },
+	[30]	= { {}, {-1},		'', 	  {'info'}, {},	'No other data in this packet' },
 	[31]	= { { 'break' } },
 
 	[32]	= { { 'case', 0x0D } },
-	[33]	= { {}, {-1},		'MODE D', {'info'},  	'Item sale status request' },
-	[34]	= { {}, {-1},		'', 	  {'info'},  	'No other data in this packet' },
+	[33]	= { {}, {-1},		'MODE D', {'info'},  {},'Item sale status request' },
+	[34]	= { {}, {-1},		'', 	  {'info'},  {},'No other data in this packet' },
 	[35]	= { { 'break' } },
 
 	[36]	= { { 'case', 0x0E } },
-	[37]	= { {}, {-1},		'MODE E', {'info'},  	'Bidding on an item' },
+	[37]	= { {}, {-1},		'MODE E', {'info'},  {},'Bidding on an item' },
 	[38]	= { {}, {8,4},		'Bid Price' 			},
 	[39]	= { {}, {12,2},		'Item ID',	{'item'}	},
 	[40]	= { {}, {16,4}, 	'Stack Flag'			},
@@ -396,10 +396,195 @@ local NewRules = {
 [0x0B5] = {
 
 	[1]		=	{ { 'call', 0xFFF }, 				},
-	[2]		=	{ {}, {6}, 	'Command',	'string'  	},
+	[2]		=	{ {}, {6}, 	'Command',	{'string'} 	},
 
 	},	--	[[ COMPLETE ]]
+
+--	Leave Bazaar --------------------------------------------------------------
+
+[0x104] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'There is NO data in this packet' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Open Bazaar ---------------------------------------------------------------
+
+[0x105] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {4,4},	'Player ID' },
+	[3]		= 	{ {}, {8,2},	'Player Index', {'eid'} },
+
+	},	--	[[ COMPLETE ]]
+
+--	Close Bazaar Menu ----------------------------------------------------------
+
+[0x109] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'There is NO data in this packet' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Bazaar Set Price ----------------------------------------------------------
+
+[0x10A] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {4},		'Inv Index' 	},
+	[3]		= 	{ {}, {8,2},	'Selling Price' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Open Bazaar Menu ----------------------------------------------------------
+
+[0x10B] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'This packet has no useful data' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Start RoE Quest -----------------------------------------------------------
+
+[0x10C] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {4,2},	'Mission', 		{'raw', 'roe'} },
+
+	},	--	[[ COMPLETE ]]
+
+--	Cancel RoE Quest ----------------------------------------------------------
+
+[0x10D] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {4,2},	'Mission', 		{'raw', 'roe'} },
+
+	},	--	[[ COMPLETE ]]
+
+--	Accept RoE Quest ----------------------------------------------------------
+
+[0x10E] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {4,2},	'Mission', 		{'raw', 'roe'} },
+
+	},	--	[[ COMPLETE ]]
+
+--	Currency Menu -------------------------------------------------------------
+
+[0x10F] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'There is NO data in this packet' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Fishing -------------------------------------------------------------------
+
+[0x110] = {
+
+		[1]		=	{ { 'call', 0xFFF }	},
+		[2]		=	{ {}, {4,4}, 	'Request' },
 	
+	},	--	[[ COMPLETE ]]
+	
+--	Lockstyle -----------------------------------------------------------------
+
+[0x111] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		=	{ {'if',0}, {4}, 	'MODE UNLOCK', {'info'},  {},'Lockstyle - OFF'	},
+	[3]		=	{ {'if',1}, {4}, 	'MODE LOCKED', {'info'},  {},'Lockstyle - ON' 	},
+
+},	--	[[ COMPLETE ]]
+
+--	RoE Log Request -----------------------------------------------------------
+
+[0x112] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'This packet has no useful data' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Request Chain List --------------------------------------------------------
+
+[0x113] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'There is NO data in this packet' },
+
+	},	--	[[ COMPLETE ]]
+
+--	HP Map Trigger ------------------------------------------------------------
+
+[0x114] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'There is NO data in this packet' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Currency Menu 2 -----------------------------------------------------------
+
+[0x115] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'There is NO data in this packet' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Unity Menu ----------------------------------------------------------------
+
+[0x116] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {4},	'Request Block'  },
+
+	},	--	[[ COMPLETE ]]
+
+--	Unity Ranking Menu --------------------------------------------------------
+
+[0x117] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'This packet has no useful data' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Set Unity Chat Mode -------------------------------------------------------
+
+[0x118] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		=	{ {'if',0}, {4}, 	'MODE OFF', {'info'},  {},'Unity Chat - Inactive'	},
+	[3]		=	{ {'if',1}, {4}, 	'MODE ON',  {'info'},  {},'Unity Chat - Active' 	},
+
+},	--	[[ COMPLETE ]]
+
+--	Request Job Emote List ----------------------------------------------------
+
+[0x119] = {
+
+	[1]		=	{ { 'call', 0xFFF }	},
+	[2]		= 	{ {}, {-1},	'ZERO', {'info'}, {},	'There is NO data in this packet' },
+
+	},	--	[[ COMPLETE ]]
+
+--	Set Job Master Display ----------------------------------------------------
+
+[0x11B] = {
+
+		[1]		=	{ { 'call', 0xFFF }	},
+		[2]		=	{ {'if',0}, {4}, 	'MODE OFF', {'info'},  {},'Job Master Display - OFF'	},
+		[3]		=	{ {'if',1}, {4}, 	'MODE ON',  {'info'},  {},'Job Master Display - ON' 	},
+	
+	},	--	[[ COMPLETE ]]
+		
 }
 
 -- ============================================================================
