@@ -35,6 +35,7 @@ local Decode = {
 	TAB_LogStates	= require('data/Tab_LogState'),		--	Names of Zone log states
 	TAB_Geo			= require('data/Tab_Geo'),			--	Names of GEO colure effects
 	TAB_Puppet		= require('data/Tab_Puppet'),		--	Names of Puppet parts
+	TAB_RoE			= require('data/Tab_RoE'),			--	Names of RoE missions
 
 	Tables	=	{
 
@@ -487,7 +488,7 @@ function Decode.String(RuleTable, Packet)
 			stop = true 
 		end
 
-		if (RuleTable.Bytes ~= 0) and (index >= RuleTable.Bytes) then
+		if (RuleTable.Bytes > 1) and (index >= RuleTable.Bytes) then
 			stop = true 
 		end
 
@@ -1089,6 +1090,32 @@ function Decode.WSkill(RuleTable)
 
 				if nil ~= RuleTable.Command then
 					imgui.TextColored( ETC.Yellow, ('%s'):fmt(ThisTable) )
+				else
+					imgui.TextColored( ETC.Red, 'Unknown' )
+				end
+			end
+		end
+	end
+
+end
+
+--	---------------------------------------------------------------------------
+--	This decodes a RoE missions
+--	---------------------------------------------------------------------------
+
+function Decode.RoE(RuleTable)
+
+	local value 	= X64.GetValue(RuleTable)
+	local XPos  	= imgui.GetCursorPosX()
+
+	local OurTable = Decode.TAB_RoE
+
+	if nil ~= OurTable then
+		for i, ThisTable in pairs(OurTable) do
+			if i == value then
+
+				if nil ~= RuleTable.Command then
+					XFunc.PaintLongString(ThisTable, ETC.Green, 300)					
 				else
 					imgui.TextColored( ETC.Red, 'Unknown' )
 				end

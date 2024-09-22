@@ -8,6 +8,7 @@ local chat			= require('chat')
 local imgui			= require('imgui')
 local CentralData	= require('CentralData')
 local XFunc 		= require('XFunc')			--	Our support functions
+local ETC			= require('ETC')			--	Our global data (brushes etc)
 
 local DataProc = {
 
@@ -45,6 +46,9 @@ function DataProc.DecodeRuleTable(RuleTable)
 
 		local	CMD		= {'', 0, 0, 0}		--	Text plus up to 3 numbers
 		
+		local	FlagOff = -1
+		local   FlagCnt = -1
+		local   FlagBit = -1
 		local   Offset	= 0
 		local	Bytes	= 1
 		local   StBit	= 0
@@ -71,10 +75,39 @@ function DataProc.DecodeRuleTable(RuleTable)
 		--	Extract the data extraction info
 
 		if nil ~= ItemDef[2] then
-			if ItemDef[2][1] ~= nil then Offset = ItemDef[2][1] end
-			if ItemDef[2][2] ~= nil then Bytes 	= ItemDef[2][2] end
-			if ItemDef[2][3] ~= nil then StBit  = ItemDef[2][3] end
+			
+			--  Some of these may be a value, a flag or not exist
+
+			if ItemDef[2][1] ~= nil then
+
+				if type(ItemDef[2][1]) == "string" then
+        			FlagOff = CentralData.ExtractFlag(ItemDef[2][1])
+				else
+					Offset = ItemDef[2][1]
+				end
+    		
+			end
+
+			if ItemDef[2][2] ~= nil then
+				if type(ItemDef[2][2]) == "string" then
+					FlagCnt = CentralData.ExtractFlag(ItemDef[2][2])
+				else	
+					Bytes = ItemDef[2][2]
+				end
+			end
+
+			if ItemDef[2][3] ~= nil then
+				if type(ItemDef[2][3]) == "string" then
+					FlagBit = CentralData.ExtractFlag(ItemDef[2][3])
+				else
+					StBit = ItemDef[2][3]
+				end
+			end
+
+			--	This will be a number if it exists (number of bits)
+			
 			if ItemDef[2][4] ~= nil then NoBits = ItemDef[2][4] end
+		
 		end
 
 		--	Correct this as not all data will be provided
@@ -115,6 +148,8 @@ function DataProc.DecodeRuleTable(RuleTable)
 											CMDOpt2 = CMD[3],
 											CMDOpt3 = CMD[4],
 											
+											FlagOff = FlagOff,
+											FlagBit = FlagBit,
 											Offset	= Offset,
 											Bytes	= Bytes,
 											Bit		= StBit,		--	This is the start bit
@@ -247,8 +282,11 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 		else
 
-			TestValue = CentralData.Flags[RuleTable.CMDOpt1]
-
+			if RuleTable.CMDOpt1 >= 1 and RuleTable.CMDOpt1 <= 9 then
+				TestValue = CentralData.Flags[RuleTable.CMDOpt1]
+			else
+				TestValue = 0
+			end
 		end
 
 		local StackSize = CentralData.GetSize()
@@ -471,9 +509,25 @@ function DataProc.ProcessCommand(PacketDisplay, RuleTable, Packet)
 
 	end
 
+	if Found == false and 'calc' == RuleTable.Command then
+
+		if type(RuleTable.CMDOpt1) == "string" then
+			--imgui.TextColored( ETC.Magic, ('Calc %s'):fmt(RuleTable.CMDOpt1) )
+			CentralData.ExecuteCalc(RuleTable)
+		end
+
+		--	{ 'calc', 'exp' }
+
+		--CentralData.Flags[RuleTable.CMDOpt1] = CentralData.Flags[RuleTable.CMDOpt1] - 1
+		
+		Step	= true
+		Found	= true
+
+	end
+	
 	if Found == false and 'useflag' == RuleTable.Command then
 
-		--	{ 'useflag', 1 }		Flag INDEX (at the point where we get the data we use this flag)
+		--	{ 'useflag' }		Flag INDEX (at the point where we get the data we use this flag)
 
 		Found	= true
 

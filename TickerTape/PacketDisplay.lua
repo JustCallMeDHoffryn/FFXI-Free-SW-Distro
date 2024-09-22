@@ -54,6 +54,7 @@ local PacketDisplay = {
 						{	cmd = 'wskill',		func = Decode.WSkill,		param = 1 },
 						{	cmd = 'craft',		func = Decode.Craft,		param = 1 },
 						{	cmd = 'dbox',		func = Decode.DBox,			param = 1 },
+						{	cmd = 'roe',		func = Decode.RoE,			param = 1 },
 
 					}
 }
@@ -224,8 +225,11 @@ function PacketDisplay.CheckForCommands(RuleTable, Packet, ExecuteThis, ThisIsCo
 				ExecuteThis		= false
 			end
 	
-		--	We need an exception for '@' and 'flag' commands but everthing else is a COMMAND
+		--	We need an exception for '@' and 'useflag' commands but everthing else is a COMMAND
 
+		elseif ('calc' == RuleTable.Command) then
+			ThisIsCommand = true
+			ExecuteThis	  = false
 		elseif ('useflag' == RuleTable.Command) then
 			ThisIsCommand = false
 			ExecuteThis	  = true
@@ -360,7 +364,7 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 		
 		CentralData.IDX = 1
 
-		for i=1, 1024 do CentralData.Flags[i] = 0 end
+		for i=1, 20 do CentralData.Flags[i] = 0 end
 
 		-- Sort and re-index the rules, we want them in numerical order
 
@@ -439,7 +443,7 @@ function PacketDisplay.ShowPacket(Packet, UI, ThisSlice)
 						imgui.TableNextRow()
 						imgui.TableSetColumnIndex(0)
 						
-						if RuleTable.Offset >= 0 then
+						if RuleTable.Offset >= 0 and 'useflag' ~= RuleTable.Command then
 							local Byte = RuleTable.Offset + CentralData.PlusByte
 							imgui.TextColored({ 0.9, 0.9, 0.9, 1.0 }, ('0x%.3X'):fmt(Byte) )
 						end

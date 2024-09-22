@@ -90,14 +90,6 @@ local UI = {
 	
 	FileName	= '',
 
-	Dirty  		= T{ 0.7, 0.7, 0.7, 1.0, },
-	Soft  		= T{ 0.6, 0.6, 0.6, 1.0, },
-	Grey1  		= T{ 0.5, 0.5, 0.5, 1.0, },
-	OffW		= T{ 0.9, 0.9, 0.9, 1.0, },
-	Yellow 		= T{ 0.9, 0.9, 0.0, 1.0, },
-	Green		= T{ 0.0, 1.0, 0.0, 1.0, },
-	Red			= T{ 0.9, 0.0, 0.0, 1.0, },
-	Brown		= T{ 0.6, 0.4, 0.2, 1.0, },
 }
 
 --	---------------------------------------------------------------------------
@@ -301,7 +293,16 @@ function UI.RawData(Packet)
 	end
 
 	if col ~= 0 then
+
+		repeat
+
+			DataTable = DataTable .. '-- '
+			col = col + 1
+
+		until col == 16
+
 		DataTable = DataTable .. '\n'
+		
 	end
 
 	DataTable = DataTable .. '\n'
