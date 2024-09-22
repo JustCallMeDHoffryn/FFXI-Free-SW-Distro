@@ -468,7 +468,7 @@ The **calc** command tells the code to do some flag calculations, then step on. 
 ```
 Where X can be in the range 1~9 (you cannot write to system flags, only read from them). V1 and V2 must resolve to values and can be an integer such as 1, 99, 1024 etc or a flag reference, #1, #7 or #A etc.
 
-The <op> can be one of the following ...
+The **op** can be one of the following ...
 ```
     +  -  *  /  <  >
 ```
